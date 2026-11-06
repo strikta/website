@@ -1,7 +1,10 @@
 import { expect, test } from 'vitest';
-import { emailFindings, hostFindings, internalFindings, messageFindings } from './text.ts';
+import type { Local } from './local.ts';
+import { emailFindings, hostFindings, internalFindings, messageFindings, privateFindings, termPositions } from './text.ts';
 
 const hosts = ['vm.example.test'];
+const terms = ['Exempelgatan 1', '000 00  Exempelby', '+00 (0)0-000 00', '000000-0000'];
+const local: Local = { present: true, hosts, terms };
 
 test.each(['See ZZZ-ADR-000 for the reason.', 'See EXP-000.', 'LR-000 says so.', 'RF-000', 'The RB-000 steps', 'REF-000', 'The ADR says so.', 'Moved to the Backlog.', 'Read .project-knowledge first.', 'Notes in .docs/plan.md'])('flags the internal identifier in %j', (text) => {
 	expect(internalFindings('page.md', text).map((finding) => finding.rule)).toContain('internal-id');
@@ -27,8 +30,21 @@ test('flags a local host in any case', () => {
 	expect(hostFindings('page.md', 'Served from VM.Example.Test', hosts).map((finding) => finding.rule)).toEqual(['local-host']);
 });
 
+test.each(['exempelgatan 1', 'EXEMPELGATAN\t\n 1', '000 00 exempelby', '000\u00a000\nExempelby', 'Call +00 (0)0-000  00', 'Born 000000-0000.'])('flags the private term in %j', (text) => {
+	expect(privateFindings('page.md', text, terms).map((finding) => finding.fix)).toEqual(['names a private term: remove it']);
+});
+
+test.each(['Exempelgatan', 'Exempelgatan, 1', '00000 Exempelby', '+00 00-000 00', '000000 0000', '000000x0000'])('passes %j without a private term', (text) => {
+	expect(termPositions(text, terms)).toEqual([]);
+});
+
+test('reports the line of a private term and passes without any terms', () => {
+	expect(privateFindings('page.md', 'first\nsecond 000000-0000', terms).map((finding) => finding.line)).toEqual([2]);
+	expect(termPositions('Exempelgatan 1', [])).toEqual([]);
+});
+
 test.each(['Add the guard\n', 'Add the guard\n# Please enter the commit message\n'])('accepts the message %j', (text) => {
-	expect(messageFindings('message', text, hosts)).toEqual([]);
+	expect(messageFindings('message', text, local)).toEqual([]);
 });
 
 test.each([
@@ -36,7 +52,8 @@ test.each([
 	['\n', 'one line in plain English'],
 	['Add the guard\nCo-authored-by: Synthetic <ada@example.com>\n', 'no AI co-author trailer'],
 	['Implement ZZZ-ADR-000\n', 'internal identifier "ZZZ-ADR-000": public text never names private records'],
-	['Point the site at vm.example.test\n', 'names a production host']
+	['Point the site at vm.example.test\n', 'names a production host'],
+	['Move to exempelgatan 1\n', 'names a private term: remove it']
 ])('rejects the message %j', (text, fix) => {
-	expect(messageFindings('message', text, hosts).map((finding) => finding.fix)).toContain(fix);
+	expect(messageFindings('message', text, local).map((finding) => finding.fix)).toContain(fix);
 });

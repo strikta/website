@@ -20,5 +20,10 @@ commit-msg:
       run: node tool/check.ts message {1}
 pre-push:
   commands:
+    tracked:
+      run: git ls-files -z | xargs -0 node tool/check.ts scan
+    pushed:
+      use_stdin: true
+      run: node tool/check.ts pushed
     built:
       run: npm run build && npm run test:built

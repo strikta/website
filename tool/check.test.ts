@@ -1,9 +1,10 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { check } from './check.ts';
 import { syntheticExport, workspace } from './fixture.ts';
 
+const LOCAL = { '.guard.local.yaml': 'private_terms: [Exempelgatan 1, 000000-0000]\n' };
 const printed = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
 afterEach(() => {
@@ -19,7 +20,35 @@ function run(argv: readonly string[], files: Readonly<Record<string, string>>): 
 }
 
 test('scan passes clean staged files and prints nothing', () => {
-	expect(run(['scan', 'README.md', 'src/components/Price.astro'], { 'README.md': 'Write to ada@example.com.\n', 'src/components/Price.astro': '<p>Price</p>\n' })).toEqual({ code: 0, output: '' });
+	expect(run(['scan', 'README.md', 'src/components/Price.astro'], { ...LOCAL, 'README.md': 'Write to ada@example.com.\n', 'src/components/Price.astro': '<p>Price</p>\n' })).toEqual({ code: 0, output: '' });
+});
+
+test('scan flags a private term in any case and spacing', () => {
+	const { code, output } = run(['scan', 'notes.md'], { ...LOCAL, 'notes.md': 'Intro\nShip to EXEMPELGATAN\n   1\n' });
+	expect(code).toBe(1);
+	expect(output).toContain('notes.md:2: private-term: names a private term: remove it (AGENTS.md, "Hard boundaries")');
+});
+
+test('scan warns once and passes when the local guard file is missing', () => {
+	expect(run(['scan', 'notes.md'], { 'notes.md': 'Exempelgatan 1\n' })).toEqual({ code: 0, output: 'warning: .guard.local.yaml is missing: the private-term rule is off\n' });
+});
+
+test('message rejects a private term', () => {
+	expect(run(['message', 'message'], { ...LOCAL, message: 'Fix 000000-0000\n' }).output).toContain('commit message:1: private-term');
+});
+
+test('pushed checks every commit message about to be pushed, merges included', () => {
+	const tree = workspace(LOCAL);
+	const git = (input: string, ...argv: readonly string[]): string => execFileSync('git', ['-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com', ...argv], { cwd: tree.directory, input, encoding: 'utf8' }).trim();
+	git('', 'init', '--quiet');
+	const empty = git('', 'mktree');
+	const first = git('Start\n', 'commit-tree', empty);
+	const merge = git('Merge\n\nFrom exempelgatan 1\n', 'commit-tree', empty, '-p', first);
+	const codes = [check(['pushed', first], tree.directory), check(['pushed', merge], tree.directory)];
+	const output = printed.mock.calls.map(([chunk]) => String(chunk)).join('');
+	tree.remove();
+	expect(codes).toEqual([0, 1]);
+	expect(output).toContain(`commit ${merge}:3: private-term`);
 });
 
 test('scan prints file, line, rule, fix and section', () => {

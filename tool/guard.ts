@@ -2,14 +2,16 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import * as zod from 'zod';
-import { localHosts, root } from './local.ts';
+import { localSettings, root } from './local.ts';
 import { separated } from './shell.ts';
+import { termPositions } from './text.ts';
 
 export type Call = { readonly tool_name: string; readonly tool_input: Readonly<Record<string, unknown>> };
 export type Context = {
 	readonly root: string;
 	readonly allowed: readonly string[];
 	readonly hosts: readonly string[];
+	readonly terms: readonly string[];
 	readonly deploying: boolean;
 	readonly home: string;
 };
@@ -58,17 +60,19 @@ function guard(): void {
 
 /** Every reason the call breaks a boundary; empty when it may run. */
 export function inspect(call: Call, context: Context): readonly string[] {
-	const findings = [...commandFindings(call, context), ...pathFindings(call, context), ...hostFindings(call, context)];
+	const findings = [...commandFindings(call, context), ...pathFindings(call, context), ...hostFindings(call, context), ...privateFindings(call, context)];
 	const unique = [...new Set(findings)];
 	return unique;
 }
 
 function localContext(): Context {
 	const temporary = [tmpdir(), '/tmp'].filter((path) => existsSync(path)).map((path) => realpathSync.native(path));
+	const { hosts, terms } = localSettings(root);
 	const context = {
 		root: realpathSync.native(root),
 		allowed: [...temporary, '/dev/null', '/dev/stdin', '/dev/stdout', '/dev/stderr'],
-		hosts: localHosts(root),
+		hosts,
+		terms,
 		deploying: process.env['STRIKTA_SITE_DEPLOY'] === '1',
 		home: homedir()
 	};
@@ -142,4 +146,16 @@ function hostFindings(call: Call, context: Context): readonly string[] {
 	const named = context.hosts.some((host) => text.includes(host.toLowerCase()));
 	const findings = named ? ['names a production host'] : [];
 	return findings;
+}
+
+function privateFindings(call: Call, context: Context): readonly string[] {
+	const named = inputStrings(call.tool_input).some((text) => termPositions(text, context.terms).length > 0);
+	const findings = named ? ['names a private term: remove it'] : [];
+	return findings;
+}
+
+function inputStrings(value: unknown): readonly string[] {
+	const nested = typeof value === 'object' && value !== null ? Object.values(value).flatMap(inputStrings) : [];
+	const strings = typeof value === 'string' ? [value] : nested;
+	return strings;
 }

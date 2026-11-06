@@ -5,7 +5,8 @@ import * as zod from 'zod';
 import { filledText, loadExport } from '../src/quote.ts';
 import { loadSlots, optionalSlot, type Slots } from '../src/slot.ts';
 import { lineAt, type Finding } from './finding.ts';
-import { emailFindings, hostFindings, internalFindings } from './text.ts';
+import type { Local } from './local.ts';
+import { emailFindings, internalFindings, localFindings, privateFindings } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
 type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[]; readonly scripts: readonly Page[] };
@@ -32,8 +33,8 @@ const CHECKOUT = '/pro/checkout';
 const ENTITIES: Readonly<Record<string, string>> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', euro: '€', mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', middot: '·', copy: '©' };
 const stageSchema = zod.object({ current: zod.string().min(1), routes: zod.array(zod.object({ path: zod.string().startsWith('/'), stages: zod.array(zod.string()) }).strict()) }).strict();
 
-/** `dist/`: no placeholder, price word, third-party request, internal ID, stray page or missing quote. */
-export function builtFindings(dist: string, root: string, hosts: readonly string[]): readonly Finding[] {
+/** `dist/`: no placeholder, price word, third-party request, internal ID, host, private term, stray page or missing quote. */
+export function builtFindings(dist: string, root: string, local: Local): readonly Finding[] {
 	const built = readBuilt(dist, root);
 	const slots = loadSlots(join(root, 'data'));
 	const pageFindings = built.pages.flatMap((page) => [
@@ -42,10 +43,10 @@ export function builtFindings(dist: string, root: string, hosts: readonly string
 		...thirdPartyFindings(page, slots),
 		...internalFindings(page.file, page.text),
 		...emailFindings(page.file, page.text),
-		...hostFindings(page.file, page.html, hosts)
+		...pageLocalFindings(page, local)
 	]);
-	const styleFindings = built.styles.flatMap((style) => thirdPartyFindings(style, slots));
-	const scriptFindings = built.scripts.flatMap(absoluteFindings);
+	const styleFindings = built.styles.flatMap((style) => [...thirdPartyFindings(style, slots), ...localFindings(style.file, style.html, local)]);
+	const scriptFindings = built.scripts.flatMap((script) => [...absoluteFindings(script), ...localFindings(script.file, script.html, local)]);
 	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
 	return findings;
 }
@@ -140,6 +141,14 @@ function covers(entry: string, route: string): boolean {
 	const prefix = entry.endsWith('/**') ? entry.slice(0, -3) : undefined;
 	const covered = prefix === undefined ? entry === route && extname(entry) === '' : route === prefix || route.startsWith(`${prefix}/`);
 	return covered;
+}
+
+/** Hosts and private terms in the markup, and private terms the visible text joins across tags. */
+function pageLocalFindings(page: Page, local: Local): readonly Finding[] {
+	const marked = localFindings(page.file, page.html, local);
+	const shown = marked.some((finding) => finding.rule === 'private-term') ? [] : privateFindings(page.file, page.text, local.terms);
+	const findings = [...marked, ...shown];
+	return findings;
 }
 
 function pageFinding(page: Page, excerpt: string, rule: string, fix: string, section: string): Finding {

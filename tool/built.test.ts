@@ -2,9 +2,12 @@ import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { builtFindings, visibleText } from './built.ts';
 import { syntheticExport, workspace } from './fixture.ts';
+import type { Local } from './local.ts';
 
 const stage = 'current: S1\nroutes:\n  - {path: /, stages: [S1]}\n  - {path: /legal, stages: [S1]}\n  - {path: /pro/checkout, stages: [S3]}\n  - {path: /docs/**, stages: [S2]}\n  - {path: /.well-known/security.txt, stages: [S1]}\n';
 const page = (body: string): string => `<!doctype html><html><head><title>Synthetic</title><link rel="stylesheet" href="/_astro/site.css"></head><body>${body}</body></html>`;
+const none: Local = { present: false, hosts: [], terms: [] };
+const terms = ['Exempelgatan 1', '000000-0000'];
 const quotes = [{ id: 'synthetic-start', text: 'Starts on [start date].', pages: ['/legal'], fills: { '[start date]': 'launch.date' } }];
 
 function site(overrides: Readonly<Record<string, string>>): Record<string, string> {
@@ -21,9 +24,9 @@ function site(overrides: Readonly<Record<string, string>>): Record<string, strin
 	return files;
 }
 
-function fixes(overrides: Readonly<Record<string, string>>, hosts?: readonly string[]): readonly string[] {
+function fixes(overrides: Readonly<Record<string, string>>, local?: Partial<Local>): readonly string[] {
 	const tree = workspace(site(overrides));
-	const found = builtFindings(join(tree.directory, 'dist'), tree.directory, hosts ?? []).map((finding) => `${finding.rule}: ${finding.fix}`);
+	const found = builtFindings(join(tree.directory, 'dist'), tree.directory, { ...none, ...local }).map((finding) => `${finding.rule}: ${finding.fix}`);
 	tree.remove();
 	return found;
 }
@@ -84,10 +87,10 @@ test('flags a page outside the current stage and a missing page of it', () => {
 
 test('without a stage table no page may be built', () => {
 	const tree = workspace({ 'dist/_astro/site.css': '' });
-	expect(builtFindings(join(tree.directory, 'dist'), tree.directory, [])).toEqual([]);
+	expect(builtFindings(join(tree.directory, 'dist'), tree.directory, none)).toEqual([]);
 	tree.remove();
 	const paged = workspace({ 'dist/index.html': page('<p>Synthetic.</p>') });
-	expect(builtFindings(join(paged.directory, 'dist'), paged.directory, []).map((finding) => finding.fix)).toEqual(['page outside stage none (data/stage.yaml is missing)']);
+	expect(builtFindings(join(paged.directory, 'dist'), paged.directory, none).map((finding) => finding.fix)).toEqual(['page outside stage none (data/stage.yaml is missing)']);
 	paged.remove();
 });
 
@@ -97,7 +100,21 @@ test('flags a missing stage page and an emptied stage table', () => {
 });
 
 test('flags a local host anywhere in the page', () => {
-	expect(fixes({}, ['site.css'])).toContain('local-host: names a production host');
+	expect(fixes({}, { hosts: ['site.css'] })).toContain('local-host: names a production host');
+});
+
+test.each([
+	['dist/index.html', page('<address>EXEMPELGATAN\n  1</address>')],
+	['dist/index.html', page('<p>Exempelgatan <span>1</span></p>')],
+	['dist/index.html', page('<p title="000000-0000">Synthetic.</p>')],
+	['dist/_astro/site.css', 'body::after { content: "000000-0000"; }'],
+	['dist/_astro/copy.js', 'const card = "Exempelgatan 1";']
+])('flags a private term once in %s', (file, content) => {
+	expect(fixes({ [file]: content }, { terms }).filter((fix) => fix === 'private-term: names a private term: remove it')).toHaveLength(1);
+});
+
+test('passes a page without a private term', () => {
+	expect(fixes({ 'dist/index.html': page('<p>Exempelgatan, a synthetic street.</p>') }, { terms })).toEqual([]);
 });
 
 test('reads text the way a browser shows it', () => {

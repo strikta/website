@@ -1,4 +1,5 @@
 import { lineAt, type Finding } from './finding.ts';
+import type { Local } from './local.ts';
 
 const INTERNAL_PATTERNS: readonly RegExp[] = [
 	/(?<found>\b(?:[A-Z]{2,6}-)?(?:ADR|LR|EXP|RF|RB|REF)-\d{3}\b)/gu,
@@ -11,6 +12,8 @@ const EMAIL = /(?<address>[\w.%+-]+@(?<domain>(?:[a-z0-9-]+\.)+[a-z]{2,}))\b/giu
 const EXAMPLE_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|[a-z0-9-]+\.test)$/u;
 const ROLE_ADDRESS = /^(?:support|licensing|security|legal)@strikta\.dev$/u;
 const TRAILER = /^co-authored-by:/imu;
+const WHITESPACE = /\s+/u;
+const SPECIAL = /[.*+?^${}()|[\]\\/]/gu;
 
 /** Internal identifiers: record IDs, the record and task-list names, private folder names. */
 export function internalFindings(file: string, text: string): readonly Finding[] {
@@ -26,6 +29,12 @@ export function internalFindings(file: string, text: string): readonly Finding[]
 	return findings;
 }
 
+/** Hosts and private terms listed in the gitignored `.guard.local.yaml`. */
+export function localFindings(file: string, text: string, local: Local): readonly Finding[] {
+	const findings = [...hostFindings(file, text, local.hosts), ...privateFindings(file, text, local.terms)];
+	return findings;
+}
+
 /** Host names listed in the gitignored `.guard.local.yaml`. */
 export function hostFindings(file: string, text: string, hosts: readonly string[]): readonly Finding[] {
 	const lowered = text.toLowerCase();
@@ -36,6 +45,24 @@ export function hostFindings(file: string, text: string, hosts: readonly string[
 	return findings;
 }
 
+/** Private terms listed in the gitignored `.guard.local.yaml`. */
+export function privateFindings(file: string, text: string, terms: readonly string[]): readonly Finding[] {
+	const findings = termPositions(text, terms).map((position) => ({ file, line: lineAt(text, position), rule: 'private-term', fix: 'names a private term: remove it', section: 'Hard boundaries' }));
+	return findings;
+}
+
+/** Where any of the terms occurs, ignoring case and treating every whitespace run as one space. */
+export function termPositions(text: string, terms: readonly string[]): readonly number[] {
+	const positions = terms.map(termPattern).flatMap((pattern) => [...text.matchAll(pattern)].map((match) => match.index));
+	return positions;
+}
+
+function termPattern(term: string): RegExp {
+	const words = term.trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
+	const pattern = new RegExp(words.join(String.raw`\s+`), 'giu');
+	return pattern;
+}
+
 /** Email addresses outside the example domains and the company's role addresses. */
 export function emailFindings(file: string, text: string): readonly Finding[] {
 	const findings = [...text.matchAll(EMAIL)]
@@ -44,13 +71,13 @@ export function emailFindings(file: string, text: string): readonly Finding[] {
 	return findings;
 }
 
-/** A commit message: one line, no co-author trailer, no internal identifier or host. */
-export function messageFindings(file: string, text: string, hosts: readonly string[]): readonly Finding[] {
+/** A commit message: one line, no co-author trailer, no internal identifier, host or private term. */
+export function messageFindings(file: string, text: string, local: Local): readonly Finding[] {
 	const lines = text.split('\n').filter((line) => !line.startsWith('#'));
 	const content = lines.join('\n').trim();
 	const shape = content.includes('\n') || content.length === 0 ? [messageFinding(file, 'one line in plain English')] : [];
 	const trailer = TRAILER.test(content) ? [messageFinding(file, 'no AI co-author trailer')] : [];
-	const findings = [...shape, ...trailer, ...internalFindings(file, content), ...hostFindings(file, content, hosts)];
+	const findings = [...shape, ...trailer, ...internalFindings(file, content), ...localFindings(file, content, local)];
 	return findings;
 }
 

@@ -16,7 +16,7 @@ writeFileSync(join(sibling, 'note.md'), 'synthetic');
 symlinkSync(sibling, join(repository, 'linked'));
 
 const hookSchema = zod.object({ hooks: zod.object({ PreToolUse: zod.array(zod.object({ hooks: zod.array(zod.object({ command: zod.string() })) })) }) });
-const context: Context = { root: repository, allowed: ['/dev/null'], hosts: ['vm.example.test'], deploying: false, home: sibling };
+const context: Context = { root: repository, allowed: ['/dev/null'], hosts: ['vm.example.test'], terms: ['Exempelgatan 1', '000000-0000'], deploying: false, home: sibling };
 
 afterAll(() => {
 	rmSync(workspace, { recursive: true, force: true });
@@ -171,6 +171,18 @@ test.each([
 	{ tool_name: 'mcp__synthetic__fetch', tool_input: { url: 'https://vm.example.test' } }
 ])('blocks a call naming a local host: %j', (call) => {
 	expect(inspect(call, context)).toContain('names a production host');
+});
+
+test.each([
+	bash('echo "EXEMPELGATAN 1" >> notes.md'),
+	{ tool_name: 'Write', tool_input: { file_path: 'README.md', content: 'Ship to Exempelgatan\n  1' } },
+	{ tool_name: 'mcp__synthetic__send', tool_input: { message: { lines: ['ID 000000-0000'] } } }
+])('blocks a call naming a private term: %j', (call) => {
+	expect(inspect(call, context)).toContain('names a private term: remove it');
+});
+
+test('allows a call without a private term', () => {
+	expect(inspect({ tool_name: 'Write', tool_input: { file_path: 'README.md', content: 'Exempelgatan is a synthetic street.' } }, context)).toEqual([]);
 });
 
 function run(input: string): { status: number | null; stderr: string } {

@@ -13,10 +13,11 @@ const EXAMPLE_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|[a-z0-9-]+\.test)$/u
 const ROLE_ADDRESS = /^(?:support|licensing|security|legal)@strikta\.dev$/u;
 const TRAILER = /^co-authored-by:/imu;
 const WHITESPACE = /\s+/u;
+const SPECIAL = /[.*+?^${}()|[\]\\/]/gu;
+const INVISIBLE = /[\u00ad\u200b-\u200d\u2060\ufeff]/gu;
 
 /** The fix printed, and the reason the guard gives, when a text names a private term. */
 export const PRIVATE_TERM = 'names a private term: remove it';
-const SPECIAL = /[.*+?^${}()|[\]\\/]/gu;
 
 /** Internal identifiers: record IDs, the record and task-list names, private folder names. */
 export function internalFindings(file: string, text: string): readonly Finding[] {
@@ -50,20 +51,30 @@ export function hostFindings(file: string, text: string, hosts: readonly string[
 
 /** Private terms listed in the gitignored `.guard.local.yaml`. */
 export function privateFindings(file: string, text: string, terms: readonly string[]): readonly Finding[] {
-	const composed = text.normalize('NFC');
-	const findings = termPositions(composed, terms).map((position) => ({ file, line: lineAt(composed, position), rule: 'private-term', fix: PRIVATE_TERM, section: 'Hard boundaries' }));
+	const normal = normalised(text);
+	const findings = matchPositions(normal, terms).map((position) => ({ file, line: lineAt(normal, position), rule: 'private-term', fix: PRIVATE_TERM, section: 'Hard boundaries' }));
 	return findings;
 }
 
-/** Where any of the terms occurs in the NFC form of the text, ignoring case and treating every whitespace run as one space. */
+/** Where any of the terms occurs in the normalised text, ignoring case and treating every whitespace run as one space. */
 export function termPositions(text: string, terms: readonly string[]): readonly number[] {
-	const composed = text.normalize('NFC');
-	const positions = terms.map(termPattern).flatMap((pattern) => [...composed.matchAll(pattern)].map((match) => match.index));
+	const positions = matchPositions(normalised(text), terms);
+	return positions;
+}
+
+/** The NFKC form (full-width digits and ligatures folded) without soft hyphens or zero-width characters. */
+function normalised(text: string): string {
+	const normal = text.replace(INVISIBLE, '').normalize('NFKC');
+	return normal;
+}
+
+function matchPositions(normal: string, terms: readonly string[]): readonly number[] {
+	const positions = terms.map(termPattern).flatMap((pattern) => [...normal.matchAll(pattern)].map((match) => match.index));
 	return positions;
 }
 
 function termPattern(term: string): RegExp {
-	const words = term.normalize('NFC').trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
+	const words = normalised(term).trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
 	const pattern = new RegExp(words.join(String.raw`\s+`), 'giu');
 	return pattern;
 }

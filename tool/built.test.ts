@@ -108,13 +108,26 @@ test.each([
 	['dist/index.html', page('<p>Exempelgatan <span>1</span></p>')],
 	['dist/index.html', page('<p title="000000-0000">Synthetic.</p>')],
 	['dist/_astro/site.css', 'body::after { content: "000000-0000"; }'],
-	['dist/_astro/copy.js', 'const card = "Exempelgatan 1";']
+	['dist/_astro/copy.js', 'const card = "Exempelgatan 1";'],
+	['dist/.well-known/security.txt', 'Contact: mailto:security@strikta.dev\n# Exempelgatan 1\n'],
+	['dist/sitemap.xml', '<urlset><url><loc>https://strikta.dev/</loc><!-- Exempelgatan&#32;1 --></url></urlset>'],
+	['dist/mark.svg', '<svg><title>Exempel&#173;gatan 1</title></svg>'],
+	['dist/site.webmanifest', '{"name": "000000-0000"}'],
+	['dist/index.html', page('<noscript><p>Exempel<b>gatan</b> 1</p></noscript>')],
+	['dist/index.html', page('<template><p>Exempel<b>gatan</b> 1</p></template>')],
+	['dist/index.html', page('<img src="/mark.svg" alt="Exempelgatan&#32;1">')],
+	['dist/index.html', page('<a href="/legal" title=\'000000&#x2d;0000\'>Legal</a>')],
+	['dist/index.html', page('<p>Exempel&shy;gatan 1</p>')]
 ])('flags a private term once in %s', (file, content) => {
 	expect(fixes({ [file]: content }, { terms }).filter((fix) => fix === 'private-term: names a private term: remove it')).toHaveLength(1);
 });
 
 test('flags a second private term that only the visible text joins', () => {
 	expect(fixes({ 'dist/index.html': page('<p>000000-0000</p><p>Exempel<b>gatan</b> 1</p>') }, { terms }).filter((fix) => fix.startsWith('private-term'))).toHaveLength(2);
+});
+
+test('skips a binary file in the build', () => {
+	expect(fixes({ 'dist/font/plex.woff2': 'wOF2\u0000Exempelgatan 1' }, { terms })).toEqual([]);
 });
 
 test('passes a page without a private term', () => {

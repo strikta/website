@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, expect, test } from 'vitest';
 import * as zod from 'zod';
-import { inspect, type Call, type Context } from './guard.ts';
+import { inspect, verdict, type Call, type Context } from './guard.ts';
 import { root } from './local.ts';
 
 const workspace = realpathSync(mkdtempSync(join(tmpdir(), 'guard-')));
@@ -179,6 +179,18 @@ test.each([
 	{ tool_name: 'mcp__synthetic__send', tool_input: { message: { lines: ['ID 000000-0000'] } } }
 ])('blocks a call naming a private term: %j', (call) => {
 	expect(inspect(call, context)).toContain('names a private term: remove it');
+});
+
+test('blocks a private term in an object key', () => {
+	expect(inspect({ tool_name: 'mcp__synthetic__send', tool_input: { fields: { 'Exempel\u00adgatan 1': 'street' } } }, context)).toContain('names a private term: remove it');
+});
+
+test('warns without blocking when the local guard file is missing or lists no terms, and blocks every call when it cannot be read', () => {
+	const call = { tool_name: 'Read', tool_input: { file_path: 'AGENTS.md' } };
+	expect(verdict(call, { present: false, hosts: [], terms: [] }, context)).toEqual({ findings: [], warning: '.guard.local.yaml is missing: the private-term rule is off' });
+	expect(verdict(call, { present: true, hosts: [], terms: [] }, context)).toEqual({ findings: [], warning: '.guard.local.yaml lists no private_terms: the private-term rule is off' });
+	expect(verdict(call, { present: true, hosts: [], terms: [], problem: 'ZZZ problem' }, context)).toEqual({ findings: ['ZZZ problem'], warning: undefined });
+	expect(verdict(call, { present: true, hosts: [], terms: ['Exempelgatan 1'] }, context)).toEqual({ findings: [], warning: undefined });
 });
 
 test('allows a call without a private term', () => {

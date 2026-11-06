@@ -9,13 +9,16 @@ import type { Local } from './local.ts';
 import { emailFindings, internalFindings, localFindings, privateFindings, termPositions } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
-type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[]; readonly scripts: readonly Page[] };
+type Source = { readonly file: string; readonly content: string };
+type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[]; readonly scripts: readonly Page[]; readonly texts: readonly Source[] };
 
 const PLACEHOLDERS: readonly RegExp[] = [/(?<found>\{[a-z_.]+\})/gu, /(?<found>\[[a-z][^\]]{2,40}\])/gu];
 const PRICE_WORDS = /%|\bsave\b|\bdiscount|\bcountdown\b|\bonly \d+ days?\b/iu;
 const BLOCK_TAG = /<\/?(?:address|article|aside|blockquote|br|dd|details|div|dl|dt|fieldset|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|summary|table|td|th|tr|ul)\b(?:[^>"']|"[^"]*"|'[^']*')*>/giu;
 const TAG = /<(?:[^>"']|"[^"]*"|'[^']*')*>/gu;
 const HIDDEN = /<(?<tag>script|style|template|noscript)\b[\s\S]*?<\/\k<tag>\s*>|<!--[\s\S]*?-->/giu;
+const UNSHOWN = /<(?<tag>script|style)\b[\s\S]*?<\/\k<tag>\s*>|<!--[\s\S]*?-->/giu;
+const ATTRIBUTE = /\s[^\s"'<>/=]+\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)'|(?<bare>[^\s"'<>=`]+))/gu;
 const BODY = /<body\b(?:[^>"']|"[^"]*"|'[^']*')*>(?<body>[\s\S]*)<\/body\s*>/iu;
 const REQUESTS: readonly RegExp[] = [
 	/\b(?:src|poster|action|data)\s*=\s*["']?(?<url>[^"'\s>]+)/giu,
@@ -30,10 +33,10 @@ const SCRIPT_URL = /(?<url>\bhttps?:\/\/[^\s"'`)\\]+)/giu;
 const SCRIPT = /\.m?js$/u;
 const SITE_HOST = 'strikta.dev';
 const CHECKOUT = '/pro/checkout';
-const ENTITIES: Readonly<Record<string, string>> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', euro: '€', mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', middot: '·', copy: '©' };
+const ENTITIES: Readonly<Record<string, string>> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', euro: '€', mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', middot: '·', copy: '©', shy: '\u00ad' };
 const stageSchema = zod.object({ current: zod.string().min(1), routes: zod.array(zod.object({ path: zod.string().startsWith('/'), stages: zod.array(zod.string()) }).strict()) }).strict();
 
-/** `dist/`: no placeholder, price word, third-party request, internal ID, host, private term, stray page or missing quote. */
+/** `dist/`: no placeholder, price word, third-party request, internal ID, host, private term (in any text file), stray page or missing quote. */
 export function builtFindings(dist: string, root: string, local: Local): readonly Finding[] {
 	const built = readBuilt(dist, root);
 	const slots = loadSlots(join(root, 'data'));
@@ -45,9 +48,9 @@ export function builtFindings(dist: string, root: string, local: Local): readonl
 		...emailFindings(page.file, page.text),
 		...pageLocalFindings(page, local)
 	]);
-	const styleFindings = built.styles.flatMap((style) => [...thirdPartyFindings(style, slots), ...localFindings(style.file, style.html, local)]);
-	const scriptFindings = built.scripts.flatMap((script) => [...absoluteFindings(script), ...localFindings(script.file, script.html, local)]);
-	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
+	const requestFindings = [...built.styles.flatMap((style) => thirdPartyFindings(style, slots)), ...built.scripts.flatMap(absoluteFindings)];
+	const textFindings = built.texts.flatMap((source) => encodedFindings(source.file, source.content, decode(source.content), local));
+	const findings = [...pageFindings, ...requestFindings, ...textFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
 	return findings;
 }
 
@@ -67,8 +70,21 @@ function readBuilt(dist: string, root: string): Built {
 		const page = { route: routeOf(file), file: relative(root, join(dist, file)), html, text: visibleText(html) };
 		return page;
 	};
-	const built = { pages: files.filter((file) => file.endsWith('.html')).map(read), files: files.map((file) => `/${file}`), styles: files.filter((file) => file.endsWith('.css')).map(read), scripts: files.filter((file) => SCRIPT.test(file)).map(read) };
+	const built = {
+		pages: files.filter((file) => file.endsWith('.html')).map(read),
+		files: files.map((file) => `/${file}`),
+		styles: files.filter((file) => file.endsWith('.css')).map(read),
+		scripts: files.filter((file) => SCRIPT.test(file)).map(read),
+		texts: files.filter((file) => !file.endsWith('.html')).flatMap((file) => sourceOf(join(dist, file), root))
+	};
 	return built;
+}
+
+/** A built file that holds no NUL byte, read as text; none for a binary file. */
+function sourceOf(path: string, root: string): readonly Source[] {
+	const content = readFileSync(path);
+	const sources = content.includes(0) ? [] : [{ file: relative(root, path), content: content.toString('utf8') }];
+	return sources;
 }
 
 function routeOf(file: string): string {
@@ -143,12 +159,26 @@ function covers(entry: string, route: string): boolean {
 	return covered;
 }
 
-/** Hosts and private terms in the markup, and each other private term the visible text joins across tags. */
+/** Hosts and private terms in the markup, and each other private term its text or attribute values show once decoded. */
 function pageLocalFindings(page: Page, local: Local): readonly Finding[] {
-	const marked = localFindings(page.file, page.html, local);
-	const hidden = local.terms.filter((term) => termPositions(page.html, [term]).length === 0);
-	const findings = [...marked, ...privateFindings(page.file, page.text, hidden)];
+	const findings = encodedFindings(page.file, page.html, termText(page.html), local);
 	return findings;
+}
+
+/** Hosts and private terms in the raw content, and each other private term only its decoded form shows. */
+function encodedFindings(file: string, content: string, decoded: string, local: Local): readonly Finding[] {
+	const marked = localFindings(file, content, local);
+	const hidden = local.terms.filter((term) => termPositions(content, [term]).length === 0);
+	const findings = [...marked, ...privateFindings(file, decoded, hidden)];
+	return findings;
+}
+
+/** The whole document's text with tags joined, <noscript> and <template> included, then each attribute value, all entity-decoded. */
+function termText(html: string): string {
+	const shown = html.replace(UNSHOWN, '');
+	const values = [...shown.matchAll(ATTRIBUTE)].map((match) => match.groups?.['double'] ?? match.groups?.['single'] ?? match.groups?.['bare'] ?? '');
+	const text = [shown.replace(TAG, ''), ...values].map((part) => collapse(decode(part))).join('\n');
+	return text;
 }
 
 function pageFinding(page: Page, excerpt: string, rule: string, fix: string, section: string): Finding {

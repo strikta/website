@@ -5,11 +5,14 @@ import { builtFindings } from './built.ts';
 import { contrastFindings, filenameFindings, foundingFindings } from './data.ts';
 import { exportFindings } from './export.ts';
 import { format, type Finding } from './finding.ts';
-import { localSettings, root } from './local.ts';
+import { LOCAL_FILE, localSettings, localWarning, root, type Local } from './local.ts';
 import { emailFindings, internalFindings, localFindings, messageFindings } from './text.ts';
 
 type Command = (targets: readonly string[], directory: string) => readonly Finding[];
 type Commit = { readonly sha: string; readonly body: string };
+type Blob = { readonly sha: string; readonly path: string };
+type Text = { readonly path: string; readonly text: string };
+type Settings = { readonly local: Local; readonly findings: readonly Finding[] };
 
 const EXPORT = 'content/export/';
 const COMMANDS: ReadonlyMap<string, Command> = new Map<string, Command>([
@@ -20,7 +23,8 @@ const COMMANDS: ReadonlyMap<string, Command> = new Map<string, Command>([
 ]);
 const UNSET = /^0+$/u;
 const LOG_BUFFER = 256 * 1024 * 1024;
-const MISSING_LOCAL = 'warning: .guard.local.yaml is missing: the private-term rule is off\n';
+const OBJECT = /^(?<sha>[0-9a-f]+) (?<path>.+)$/u;
+const BATCH_HEADER = /^[0-9a-f]+ blob (?<size>\d+)$/u;
 const DATA_RULES: ReadonlyMap<string, (file: string, text: string) => readonly Finding[]> = new Map([
 	['data/offer.yaml', foundingFindings],
 	['data/tokens.yaml', contrastFindings]
@@ -45,10 +49,7 @@ export function check(argv: readonly string[], directory: string): number {
 }
 
 function scan(files: readonly string[], directory: string): readonly Finding[] {
-	const local = localSettings(directory);
-	if (!local.present) {
-		process.stderr.write(MISSING_LOCAL);
-	}
+	const { local, findings: refused } = settings(directory, false);
 	const paths = files.map((file) => relative(directory, resolve(directory, file)).split(sep).join('/'));
 	const texts = paths.filter((path) => existsSync(join(directory, path))).flatMap((path) => textOf(directory, path));
 	const fileFindings = texts.flatMap(({ path, text }) => [
@@ -59,31 +60,47 @@ function scan(files: readonly string[], directory: string): readonly Finding[] {
 		...(path.startsWith('src/components/') ? filenameFindings(path) : [])
 	]);
 	const exported = paths.some((path) => path.startsWith(EXPORT)) ? exportFindings(join(directory, EXPORT), EXPORT) : [];
-	const findings = [...fileFindings, ...exported];
+	const findings = [...refused, ...fileFindings, ...exported];
 	return findings;
 }
 
 function message(files: readonly string[], directory: string): readonly Finding[] {
-	const local = localSettings(directory);
-	const findings = files.flatMap((file) => messageFindings('commit message', readFileSync(resolve(directory, file), 'utf8'), local));
+	const { local, findings: refused } = settings(directory, false);
+	const findings = [...refused, ...files.flatMap((file) => messageFindings('commit message', readFileSync(resolve(directory, file), 'utf8'), local))];
 	return findings;
 }
 
 function built(targets: readonly string[], directory: string): readonly Finding[] {
 	const [dist = 'dist'] = targets;
 	const location = resolve(directory, dist);
+	const { local, findings: refused } = settings(directory, false);
 	const findings = existsSync(location)
-		? builtFindings(location, directory, localSettings(directory))
+		? [...refused, ...builtFindings(location, directory, local)]
 		: [{ file: dist, line: 1, rule: 'built', fix: 'nothing built: run npm run build first', section: 'Commands' }];
 	return findings;
 }
 
-/** Every commit about to be pushed, merges included (pre-push refs on stdin, or revisions): no host or private term in its message. */
+/** Every commit about to be pushed, merges included (pre-push refs on stdin, or revisions): no host or private term in its message or in any file it holds that no remote has yet. */
 function pushed(targets: readonly string[], directory: string): readonly Finding[] {
-	const local = localSettings(directory);
+	const { local, findings: refused } = settings(directory, true);
 	const tips = targets.length > 0 ? targets : pushedTips(readFileSync(0, 'utf8'));
-	const findings = unpushedCommits(directory, tips).flatMap((commit) => localFindings(`commit ${commit.sha}`, commit.body, local));
+	const messages = unpushedCommits(directory, tips).flatMap((commit) => localFindings(`commit ${commit.sha}`, commit.body, local));
+	const contents = unpushedTexts(directory, tips).flatMap(({ path, text }) => localFindings(`${path} (in a pushed commit)`, text, local));
+	const findings = [...refused, ...messages, ...contents];
 	return findings;
+}
+
+/** The local guard file; prints why the private-term rule is off, and refuses a file that cannot be read, or a missing one when it is required. */
+function settings(directory: string, required: boolean): Settings {
+	const local = localSettings(directory);
+	const warning = localWarning(local);
+	const missing = required && !local.present ? ['missing: create it with your private_terms list before pushing'] : [];
+	const problems = [...missing, ...(local.problem === undefined ? [] : [`${local.problem}: fix it by hand`])];
+	if (warning !== undefined && problems.length === 0) {
+		process.stderr.write(`warning: ${warning}\n`);
+	}
+	const findings = problems.map((fix) => ({ file: LOCAL_FILE, line: 1, rule: 'local-file', fix, section: 'Hard boundaries' }));
+	return { local, findings };
 }
 
 function pushedTips(refs: string): readonly string[] {
@@ -103,7 +120,33 @@ function unpushedCommits(directory: string, tips: readonly string[]): readonly C
 	return commits;
 }
 
-function textOf(directory: string, path: string): readonly { path: string; text: string }[] {
+/** Every text file reachable from the tips that no remote holds yet: what a push uploads, whatever the working tree now shows. */
+function unpushedTexts(directory: string, tips: readonly string[]): readonly Text[] {
+	const listing = tips.length === 0 ? '' : execFileSync('git', ['rev-list', '--objects', '--filter=object:type=blob', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: LOG_BUFFER });
+	const blobs = listing.split('\n').flatMap((line) => {
+		const groups = OBJECT.exec(line)?.groups;
+		return groups?.['sha'] === undefined || groups['path'] === undefined ? [] : [{ sha: groups['sha'], path: groups['path'] }];
+	});
+	const texts = blobs.length === 0 ? [] : blobTexts(directory, blobs);
+	return texts;
+}
+
+/** Reads the blobs through one `git cat-file --batch`, skipping binary content. */
+function blobTexts(directory: string, blobs: readonly Blob[]): readonly Text[] {
+	const output = execFileSync('git', ['cat-file', '--batch'], { cwd: directory, input: blobs.map((blob) => `${blob.sha}\n`).join(''), maxBuffer: LOG_BUFFER });
+	const texts: Text[] = [];
+	let offset = 0;
+	for (const blob of blobs) {
+		const end = output.indexOf(0x0a, offset);
+		const size = BATCH_HEADER.exec(output.toString('utf8', offset, end))?.groups?.['size'];
+		const content = size === undefined ? undefined : output.subarray(end + 1, end + 1 + Number(size));
+		offset = content === undefined ? end + 1 : end + 2 + content.length;
+		texts.push(...(content === undefined || content.includes(0) ? [] : [{ path: blob.path, text: content.toString('utf8') }]));
+	}
+	return texts;
+}
+
+function textOf(directory: string, path: string): readonly Text[] {
 	const content = readFileSync(join(directory, path));
 	const texts = content.includes(0) ? [] : [{ path, text: content.toString('utf8') }];
 	return texts;

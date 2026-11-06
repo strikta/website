@@ -2,7 +2,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import * as zod from 'zod';
-import { localSettings, root } from './local.ts';
+import { localSettings, localWarning, root, type Local } from './local.ts';
 import { separated } from './shell.ts';
 import { PRIVATE_TERM, termPositions } from './text.ts';
 
@@ -15,6 +15,7 @@ export type Context = {
 	readonly deploying: boolean;
 	readonly home: string;
 };
+type Verdict = { readonly findings: readonly string[]; readonly warning: string | undefined };
 type Rule = { readonly pattern: RegExp; readonly reason: string };
 
 const ARGUMENTS = String.raw`[^&|;\n]*\s`;
@@ -51,11 +52,22 @@ if (import.meta.main) {
 
 function guard(): void {
 	const call = callSchema.parse(JSON.parse(readFileSync(0, 'utf8')));
-	const findings = inspect(call, localContext());
+	const local = localSettings(root);
+	const { findings, warning } = verdict(call, local, localContext(local));
+	if (warning !== undefined) {
+		process.stderr.write(`Website guard warning: ${warning}\n`);
+	}
 	if (findings.length > 0) {
 		process.stderr.write(`Blocked by the website guard: ${findings.join('; ')}. See AGENTS.md, "Hard boundaries".\n`);
 		process.exit(2);
 	}
+}
+
+/** The reasons to block the call and the warning to print: an unreadable local guard file blocks every call, a missing one or an empty list only warns. */
+export function verdict(call: Call, local: Local, context: Context): Verdict {
+	const readable = local.problem === undefined;
+	const decided = { findings: readable ? inspect(call, context) : [local.problem], warning: readable ? localWarning(local) : undefined };
+	return decided;
 }
 
 /** Every reason the call breaks a boundary; empty when it may run. */
@@ -65,9 +77,9 @@ export function inspect(call: Call, context: Context): readonly string[] {
 	return unique;
 }
 
-function localContext(): Context {
+function localContext(local: Local): Context {
 	const temporary = [tmpdir(), '/tmp'].filter((path) => existsSync(path)).map((path) => realpathSync.native(path));
-	const { hosts, terms } = localSettings(root);
+	const { hosts, terms } = local;
 	const context = {
 		root: realpathSync.native(root),
 		allowed: [...temporary, '/dev/null', '/dev/stdin', '/dev/stdout', '/dev/stderr'],
@@ -154,8 +166,9 @@ function privateFindings(call: Call, context: Context): readonly string[] {
 	return findings;
 }
 
+/** Every string in the input, object keys included. */
 function inputTexts(value: unknown): readonly string[] {
-	const nested = typeof value === 'object' && value !== null ? Object.values(value).flatMap(inputTexts) : [];
+	const nested = typeof value === 'object' && value !== null ? Object.entries(value).flatMap(([key, inner]) => [key, ...inputTexts(inner)]) : [];
 	const texts = typeof value === 'string' ? [value] : nested;
 	return texts;
 }

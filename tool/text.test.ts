@@ -43,6 +43,14 @@ test('matches a decomposed accent against a composed term', () => {
 	expect(privateFindings('page.md', 'Exempelvägen', ['Exempelva\u0308gen'])).toHaveLength(1);
 });
 
+test.each(['Exempel\u00adgatan 1', 'Exem\u200bpel\u200dgatan\u2060 1', '\ufeffExempelgatan \uff11', '\uff10\uff10\uff10\uff10\uff10\uff10-0000', 'Exempelga\u200b\u0308tan 1'])('matches the NFKC form without hidden characters in %j', (text) => {
+	expect(termPositions(text, ['Exempelgatan 1', '000000-0000', 'Exempelgätan 1']).length).toBeGreaterThan(0);
+});
+
+test('reports the line of a private term after hidden characters are removed', () => {
+	expect(privateFindings('page.md', 'first\u200b\nsecond Exempel\u00adgatan 1', terms).map((finding) => finding.line)).toEqual([2]);
+});
+
 test('reports the line of a private term and passes without any terms', () => {
 	expect(privateFindings('page.md', 'first\nsecond 000000-0000', terms).map((finding) => finding.line)).toEqual([2]);
 	expect(termPositions('Exempelgatan 1', [])).toEqual([]);

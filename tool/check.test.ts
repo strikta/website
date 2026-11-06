@@ -37,26 +37,96 @@ test('message rejects a private term', () => {
 	expect(run(['message', 'message'], { ...LOCAL, message: 'Fix 000000-0000\n' }).output).toContain('commit message:1: private-term');
 });
 
+type Repository = { readonly directory: string; readonly git: (input: string, ...argv: readonly string[]) => string; readonly commit: (message: string, files: Readonly<Record<string, string>>, parent?: string) => string; readonly remove: () => void };
+
+/** A synthetic git repository in a temporary folder; commits are written with plumbing, so no hook runs. */
+function repository(files: Readonly<Record<string, string>>): Repository {
+	const tree = workspace(files);
+	const git = (input: string, ...argv: readonly string[]): string => execFileSync('git', ['-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com', ...argv], { cwd: tree.directory, input, encoding: 'utf8' }).trim();
+	git('', 'init', '--quiet');
+	const commit = (message: string, content: Readonly<Record<string, string>>, parent?: string): string => {
+		const entries = Object.entries(content).map(([path, text]) => `100644 blob ${git(text, 'hash-object', '-w', '--stdin')}\t${path}\n`);
+		const parents = parent === undefined ? [] : ['-p', parent];
+		const sha = git(message, 'commit-tree', git(entries.join(''), 'mktree'), ...parents);
+		return sha;
+	};
+	const created = { directory: tree.directory, git, commit, remove: tree.remove };
+	return created;
+}
+
+function pushedOutput(repository: Repository, tips: readonly string[]): { code: number; output: string } {
+	const code = check(['pushed', ...tips], repository.directory);
+	const output = printed.mock.calls.map(([chunk]) => String(chunk)).join('');
+	return { code, output };
+}
+
 test.each([
 	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 0],
 	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1]
 ])('pushed reads the local tips from the pre-push input %j', (input, status) => {
-	const child = spawnSync(process.execPath, [join(import.meta.dirname, 'check.ts'), 'pushed'], { input, encoding: 'utf8' });
+	const synthetic = repository(LOCAL);
+	const script = `import { check } from ${JSON.stringify(join(import.meta.dirname, 'check.ts'))}\nprocess.exitCode = check(['pushed'], process.argv[1])\n`;
+	const child = spawnSync(process.execPath, ['--input-type=module', '--eval', script, synthetic.directory], { input, encoding: 'utf8' });
+	synthetic.remove();
 	expect(child.status).toBe(status);
 });
 
 test('pushed checks every commit message about to be pushed, merges included', () => {
-	const tree = workspace(LOCAL);
-	const git = (input: string, ...argv: readonly string[]): string => execFileSync('git', ['-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com', ...argv], { cwd: tree.directory, input, encoding: 'utf8' }).trim();
-	git('', 'init', '--quiet');
-	const empty = git('', 'mktree');
-	const first = git('Start\n', 'commit-tree', empty);
-	const merge = git('Merge\n\nFrom exempelgatan 1\n', 'commit-tree', empty, '-p', first);
-	const codes = [check(['pushed', first], tree.directory), check(['pushed', merge], tree.directory)];
-	const output = printed.mock.calls.map(([chunk]) => String(chunk)).join('');
-	tree.remove();
-	expect(codes).toEqual([0, 1]);
+	const synthetic = repository(LOCAL);
+	const first = synthetic.commit('Start\n', {});
+	const merge = synthetic.commit('Merge\n\nFrom exempelgatan 1\n', {}, first);
+	const clean = pushedOutput(synthetic, [first]).code;
+	const { code, output } = pushedOutput(synthetic, [merge]);
+	synthetic.remove();
+	expect([clean, code]).toEqual([0, 1]);
 	expect(output).toContain(`commit ${merge}:3: private-term`);
+});
+
+test('pushed refuses a private term that an unpushed commit adds and a later one removes, on any branch', () => {
+	const synthetic = repository(LOCAL);
+	const added = synthetic.commit('Add notes\n', { 'notes.md': 'Intro\nShip to Exempelgatan 1\n', 'mark.bin': 'Exempelgatan 1\u0000' });
+	const removed = synthetic.commit('Trim notes\n', { 'notes.md': 'Intro\n' }, added);
+	const { code, output } = pushedOutput(synthetic, [removed]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain('notes.md (in a pushed commit):2: private-term');
+	expect(output).not.toContain('mark.bin');
+});
+
+test('pushed skips content a remote already holds', () => {
+	const synthetic = repository(LOCAL);
+	const published = synthetic.commit('Add notes\n', { 'notes.md': 'Exempelgatan 1\n' });
+	synthetic.git('', 'update-ref', 'refs/remotes/origin/main', published);
+	const next = synthetic.commit('Add a page\n', { 'notes.md': 'Exempelgatan 1\n', 'page.md': 'Synthetic.\n' }, published);
+	const { code } = pushedOutput(synthetic, [next]);
+	synthetic.remove();
+	expect(code).toBe(0);
+});
+
+test('pushed refuses to run without the local guard file and says to create it', () => {
+	const synthetic = repository({});
+	const { code, output } = pushedOutput(synthetic, [synthetic.commit('Start\n', {})]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toBe('.guard.local.yaml:1: local-file: missing: create it with your private_terms list before pushing (AGENTS.md, "Hard boundaries")\n');
+});
+
+test('reads an unquoted phone number as text, keeping its leading zero', () => {
+	expect(run(['scan', 'notes.md'], { '.guard.local.yaml': 'private_terms: [0000000000]\n', 'notes.md': 'Call 0000000000\n' }).output).toContain('notes.md:1: private-term');
+});
+
+test.each([
+	['private_terms: [{street: Exempelgatan 1}]\n', '.guard.local.yaml:1: local-file: .guard.local.yaml is invalid at private_terms.0: Invalid input: expected string, received object: fix it by hand'],
+	['private_terms: [\n', '.guard.local.yaml:1: local-file: .guard.local.yaml is invalid at line 2 (not valid YAML): fix it by hand']
+])('refuses an unreadable local guard file %j without quoting it', (content, finding) => {
+	const { code, output } = run(['scan', 'notes.md'], { '.guard.local.yaml': content, 'notes.md': 'Synthetic.\n' });
+	expect(code).toBe(1);
+	expect(output).toContain(finding);
+	expect(output).not.toContain('Exempelgatan');
+});
+
+test('warns when the local guard file lists no private terms', () => {
+	expect(run(['message', 'message'], { '.guard.local.yaml': 'private_terms:\n', message: 'Fix the page\n' })).toEqual({ code: 0, output: 'warning: .guard.local.yaml lists no private_terms: the private-term rule is off\n' });
 });
 
 test('scan prints file, line, rule, fix and section', () => {

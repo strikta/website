@@ -37,13 +37,44 @@ function single(scan: Scan): boolean {
 }
 
 function double(scan: Scan): boolean {
-	return escaped(scan, '"', scan.position + 1);
+	scan.position += 1;
+	let found = false;
+	while (!found && scan.position < scan.text.length && scan.text.charAt(scan.position) !== '"') {
+		const step = QUOTED_STEPS.get(scan.text.charAt(scan.position)) ?? plain;
+		found = step(scan);
+	}
+	scan.position += 1;
+	const unterminated = scan.position > scan.text.length;
+	return found || unterminated;
 }
 
 function dollar(scan: Scan): boolean {
-	const ansi = scan.text.charAt(scan.position + 1) === "'";
-	const unterminated = ansi ? escaped(scan, "'", scan.position + 2) : plain(scan);
-	return unterminated;
+	const next = scan.text.charAt(scan.position + 1);
+	const ansi = next === "'" ? escaped(scan, "'", scan.position + 2) : undefined;
+	const found = ansi ?? (next === '(' ? substitution(scan, 2, ')') : plain(scan));
+	return found;
+}
+
+function quotedDollar(scan: Scan): boolean {
+	const found = scan.text.charAt(scan.position + 1) === '(' ? substitution(scan, 2, ')') : plain(scan);
+	return found;
+}
+
+function backtick(scan: Scan): boolean {
+	return substitution(scan, 1, '`');
+}
+
+/** A command substitution: its body is scanned like a command up to the closing character. */
+function substitution(scan: Scan, opening: number, closing: string): boolean {
+	scan.position += opening;
+	let found = false;
+	while (!found && scan.position < scan.text.length && scan.text.charAt(scan.position) !== closing) {
+		const step = STEPS.get(scan.text.charAt(scan.position)) ?? plain;
+		found = step(scan);
+	}
+	scan.position += 1;
+	const unterminated = scan.position > scan.text.length;
+	return found || unterminated;
 }
 
 function escaped(scan: Scan, quote: string, start: number): boolean {
@@ -116,4 +147,9 @@ const STEPS: ReadonlyMap<string, Step> = new Map<string, Step>([
 	['#', comment],
 	['<', redirect],
 	['\n', newline]
+]);
+const QUOTED_STEPS: ReadonlyMap<string, Step> = new Map<string, Step>([
+	['\\', backslash],
+	['$', quotedDollar],
+	['`', backtick]
 ]);

@@ -40,7 +40,9 @@ test.each([
 	['<img src="https://cdn.example.com/a.png" alt="">', 'third-party: "https://cdn.example.com/a.png": no third-party request; self-host it'],
 	['<script src="//cdn.example.com/a.js"></script>', 'third-party: "//cdn.example.com/a.js": no third-party request; self-host it'],
 	['<p>See ZZZ-ADR-000.</p>', 'internal-id: internal identifier "ZZZ-ADR-000": public text never names private records'],
-	['<p>Write to ada@elsewhere.org</p>', 'email: "ada@elsewhere.org": use an example domain']
+	['<p>Write to ada@elsewhere.org</p>', 'email: "ada@elsewhere.org": use an example domain'],
+	['<a href="/legal" ping="https://track.example.com/hit">Legal</a>', 'third-party: "https://track.example.com/hit": no third-party request; self-host it'],
+	['<meta http-equiv="refresh" content="0; url=https://elsewhere.example.com/">', 'third-party: "https://elsewhere.example.com/": no third-party request; self-host it']
 ])('flags the home page body %j', (body, fix) => {
 	expect(fixes({ 'dist/index.html': page(body) })).toContain(fix);
 });
@@ -59,6 +61,14 @@ test('flags a third-party import in a stylesheet', () => {
 	expect(fixes({ 'dist/_astro/site.css': '@import url("https://fonts.example.com/plex.css");' })).toContain(
 		'third-party: "https://fonts.example.com/plex.css": no third-party request; self-host it'
 	);
+});
+
+test.each(['dist/_astro/copy.js', 'dist/_astro/copy.mjs'])('flags an absolute off-origin URL in the script %s', (file) => {
+	expect(fixes({ [file]: 'fetch("https://api.example.com/v1");' })).toContain('third-party: "https://api.example.com/v1": no third-party request; self-host it');
+});
+
+test('passes a script that only calls its own origin', () => {
+	expect(fixes({ 'dist/_astro/copy.js': 'fetch("/api");fetch("https://strikta.dev/api");' })).toEqual([]);
 });
 
 test('flags a quote that is not on its page', () => {

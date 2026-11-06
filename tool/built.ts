@@ -8,7 +8,7 @@ import { lineAt, type Finding } from './finding.ts';
 import { emailFindings, hostFindings, internalFindings } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
-type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[] };
+type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[]; readonly scripts: readonly Page[] };
 
 const PLACEHOLDERS: readonly RegExp[] = [/(?<found>\{[a-z_.]+\})/gu, /(?<found>\[[a-z][^\]]{2,40}\])/gu];
 const PRICE_WORDS = /%|\bsave\b|\bdiscount|\bcountdown\b|\bonly \d+ days?\b/iu;
@@ -18,12 +18,15 @@ const HIDDEN = /<(?<tag>script|style|template|noscript)\b[\s\S]*?<\/\k<tag>\s*>|
 const BODY = /<body\b(?:[^>"']|"[^"]*"|'[^']*')*>(?<body>[\s\S]*)<\/body\s*>/iu;
 const REQUESTS: readonly RegExp[] = [
 	/\b(?:src|poster|action|data)\s*=\s*["']?(?<url>[^"'\s>]+)/giu,
-	/\bsrcset\s*=\s*["'](?<url>[^"']+)/giu,
+	/\b(?:srcset|ping)\s*=\s*["'](?<url>[^"']+)/giu,
+	/\bcontent\s*=\s*["']?\s*\d+\s*;\s*url\s*=\s*["']?(?<url>[^"'\s>]+)/giu,
 	/<link\b(?:[^>"']|"[^"]*"|'[^']*')*?\bhref\s*=\s*["']?(?<url>[^"'\s>]+)/giu,
 	/\burl\(\s*["']?(?<url>[^"')\s]+)/giu,
 	/@import\s+(?:url\(\s*)?["']?(?<url>[^"')\s;]+)/giu
 ];
 const FOREIGN_HOST = /(?:^|[\s,])(?:[a-z][a-z0-9+.-]*:)?\/\/(?<host>[^/?#:\s,]+)/giu;
+const SCRIPT_URL = /(?<url>\bhttps?:\/\/[^\s"'`)\\]+)/giu;
+const SCRIPT = /\.m?js$/u;
 const SITE_HOST = 'strikta.dev';
 const CHECKOUT = '/pro/checkout';
 const ENTITIES: Readonly<Record<string, string>> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', euro: '€', mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', middot: '·', copy: '©' };
@@ -42,7 +45,8 @@ export function builtFindings(dist: string, root: string, hosts: readonly string
 		...hostFindings(page.file, page.html, hosts)
 	]);
 	const styleFindings = built.styles.flatMap((style) => thirdPartyFindings(style, slots));
-	const findings = [...pageFindings, ...styleFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
+	const scriptFindings = built.scripts.flatMap(absoluteFindings);
+	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
 	return findings;
 }
 
@@ -62,7 +66,7 @@ function readBuilt(dist: string, root: string): Built {
 		const page = { route: routeOf(file), file: relative(root, join(dist, file)), html, text: visibleText(html) };
 		return page;
 	};
-	const built = { pages: files.filter((file) => file.endsWith('.html')).map(read), files: files.map((file) => `/${file}`), styles: files.filter((file) => file.endsWith('.css')).map(read) };
+	const built = { pages: files.filter((file) => file.endsWith('.html')).map(read), files: files.map((file) => `/${file}`), styles: files.filter((file) => file.endsWith('.css')).map(read), scripts: files.filter((file) => SCRIPT.test(file)).map(read) };
 	return built;
 }
 
@@ -91,8 +95,19 @@ function thirdPartyFindings(page: Page, slots: Slots): readonly Finding[] {
 	const merchant = page.route === CHECKOUT ? optionalSlot(slots, 'merchant.script_host') : undefined;
 	const urls = REQUESTS.flatMap((pattern) => [...page.html.matchAll(pattern)].map((match) => match.groups?.['url'] ?? ''));
 	const own = new Set(merchant === undefined ? [SITE_HOST] : [SITE_HOST, merchant]);
+	const findings = foreignFindings(page, urls, own);
+	return findings;
+}
+
+function foreignFindings(page: Page, urls: readonly string[], own: ReadonlySet<string>): readonly Finding[] {
 	const foreign = urls.filter((url) => [...url.matchAll(FOREIGN_HOST)].some((match) => !own.has(match.groups?.['host']?.toLowerCase() ?? '')));
 	const findings = foreign.map((url) => pageFinding(page, url, 'third-party', `"${url}": no third-party request; self-host it`, 'Hard boundaries'));
+	return findings;
+}
+
+function absoluteFindings(script: Page): readonly Finding[] {
+	const urls = [...script.html.matchAll(SCRIPT_URL)].map((match) => match.groups?.['url'] ?? '');
+	const findings = foreignFindings(script, urls, new Set([SITE_HOST]));
 	return findings;
 }
 

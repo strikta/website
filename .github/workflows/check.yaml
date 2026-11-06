@@ -3,6 +3,7 @@ name: check
 # Fork pull requests run here with a read-only token and no secrets; this repository holds no deploy secret.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -28,4 +29,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner
+      - name: Scan every tracked file
+        run: git ls-files -z | xargs -0 node tool/check.ts scan
+      - name: Check the pull request's commit messages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for commit in $(git rev-list --no-merges "$BASE..$HEAD")
+          do
+            git log -1 --format=%B "$commit" > "$RUNNER_TEMP/message"
+            node tool/check.ts message "$RUNNER_TEMP/message" || exit 1
+          done
       - run: npm run gate

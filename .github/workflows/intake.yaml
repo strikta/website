@@ -1,7 +1,7 @@
 name: intake
 
-# Closes a pull request from an outside contributor that links no issue (CONTRIBUTING, "Before you
-# open a PR"). pull_request_target runs in the base repository even for a fork, without approval,
+# Closes a pull request from an outside contributor that links no issue (README: contributions
+# start with an issue). pull_request_target runs in the base repository even for a fork, without approval,
 # so this workflow never checks out or runs pull request code: it reads only the event payload and
 # calls the API through the gh CLI preinstalled on the runner.
 on:
@@ -50,5 +50,5 @@ jobs:
           MESSAGE: >-
             Thanks for the pull request. This repository takes outside pull requests only for an
             open issue, so a change is agreed before anyone writes or reviews it (see
-            CONTRIBUTING.md). Please open an issue, or find an existing one, then open a new pull
+            README.md). Please open an issue, or find an existing one, then open a new pull
             request whose description links it, for example "Closes #123".

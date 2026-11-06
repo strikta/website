@@ -1,7 +1,7 @@
 import { lineAt, type Finding } from './finding.ts';
 
 const INTERNAL_PATTERNS: readonly RegExp[] = [
-	/(?<found>\b[A-Z]{2,6}-(?:ADR|LR|EXP|RF|RB|REF)-\d{3}\b)/gu,
+	/(?<found>\b(?:[A-Z]{2,6}-)?(?:ADR|LR|EXP|RF|RB|REF)-\d{3}\b)/gu,
 	/(?<found>\bADR\b)/gu,
 	/(?<found>\bbacklog\b)/giu,
 	/(?<found>\.project-knowledge)/gu,

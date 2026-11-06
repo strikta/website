@@ -9,6 +9,10 @@ test.each([
 	'cd somewhere; ls',
 	'echo "a\\" ; b"; ls',
 	'echo $(ls; pwd)',
+	'echo "$(ls; pwd)"',
+	'echo "`ls; pwd`"',
+	'echo "$(echo \'a)\'; pwd)"',
+	'echo "$(ls"',
 	'cat <<EOF\nbody\nEOF\nls; pwd',
 	"echo 'open",
 	'echo "open',
@@ -35,6 +39,9 @@ test.each([
 	'cat <<"END"\none; two\nEND\necho done',
 	'grep -c x <<< "a; b"',
 	'echo a#b',
+	'echo "$(git rev-parse HEAD) is; text"',
+	'echo "$(printf \'%s\' \'a; b\')"',
+	'echo "cost: $5; total"',
 	''
 ])('allows %j', (command) => {
 	expect(separated(command)).toBe(false);

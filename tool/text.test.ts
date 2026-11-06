@@ -3,7 +3,7 @@ import { emailFindings, hostFindings, internalFindings, messageFindings } from '
 
 const hosts = ['vm.example.test'];
 
-test.each(['See ZZZ-ADR-000 for the reason.', 'The ADR says so.', 'Moved to the Backlog.', 'Read .project-knowledge first.', 'Notes in .docs/plan.md'])('flags the internal identifier in %j', (text) => {
+test.each(['See ZZZ-ADR-000 for the reason.', 'See EXP-000.', 'LR-000 says so.', 'RF-000', 'The RB-000 steps', 'REF-000', 'The ADR says so.', 'Moved to the Backlog.', 'Read .project-knowledge first.', 'Notes in .docs/plan.md'])('flags the internal identifier in %j', (text) => {
 	expect(internalFindings('page.md', text).map((finding) => finding.rule)).toContain('internal-id');
 });
 

@@ -15,25 +15,30 @@ export type Context = {
 };
 type Rule = { readonly pattern: RegExp; readonly reason: string };
 
-const TOKENS = String.raw`(?:[^\s&|;]+\s+)*?`;
+const ARGUMENTS = String.raw`[^&|;\n]*\s`;
+const FLAG_END = String.raw`(?=\s|$)`;
 const COMMAND_RULES: readonly Rule[] = [
 	{ pattern: /\bgit\s+stash\b/u, reason: 'git stash is shared by every worktree' },
-	{ pattern: new RegExp(String.raw`\bgit\s+add\s+${TOKENS}(?:-A|--all|-u|--update|\.)(?=\s|$)`, 'u'), reason: 'add named files only' },
-	{ pattern: new RegExp(String.raw`\bgit\s+commit\s+${TOKENS}(?:-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\s|$)`, 'u'), reason: 'add named files only' },
-	{ pattern: /\bgit\s+(?:reset\s+--hard|clean\b|checkout\s+--(?=\s|$)|restore\b(?![^&|;\n]*--staged))/u, reason: 'destructive git' },
-	{ pattern: /\bgit\s+push\b[^&|;\n]*(?:\s--force(?![-\w])|\s-[a-zA-Z]*f\b|\s\+\S)/u, reason: 'force push: use --force-with-lease on your own branch' },
-	{ pattern: new RegExp(String.raw`--no-verify\b|\bgit\s+commit\s+${TOKENS}-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)|\bLEFTHOOK\w*=|core\.hooksPath`, 'u'), reason: 'hooks are not optional' },
+	{ pattern: new RegExp(String.raw`\bgit\s+add\b${ARGUMENTS}(?:-[a-zA-Z]*[Au][a-zA-Z]*|--all|--update|\.|:/)${FLAG_END}`, 'u'), reason: 'add named files only' },
+	{ pattern: new RegExp(String.raw`\bgit\s+commit\b${ARGUMENTS}(?:-[a-zA-Z]*a[a-zA-Z]*|--all)${FLAG_END}`, 'u'), reason: 'add named files only' },
+	{ pattern: new RegExp(String.raw`\bgit\s+(?:reset\b${ARGUMENTS}--hard${FLAG_END}|clean\b|checkout\b${ARGUMENTS}(?:--|\.|--force|-[a-zA-Z]*f[a-zA-Z]*)${FLAG_END}|switch\b${ARGUMENTS}(?:--discard-changes|--force|-[a-zA-Z]*f[a-zA-Z]*)${FLAG_END})`, 'u'), reason: 'destructive git' },
+	{ pattern: new RegExp(String.raw`\bgit\s+restore\b(?:(?!${ARGUMENTS}(?:--staged|-[a-zA-Z]*S[a-zA-Z]*)${FLAG_END})|(?=${ARGUMENTS}(?:--worktree|-[a-zA-Z]*W[a-zA-Z]*)${FLAG_END}))`, 'u'), reason: 'destructive git' },
+	{ pattern: new RegExp(String.raw`\bgit\s+push\b${ARGUMENTS}(?:--force|-[a-zA-Z]*f[a-zA-Z]*|\+\S+)${FLAG_END}`, 'u'), reason: 'force push: use --force-with-lease on your own branch' },
+	{ pattern: new RegExp(String.raw`--no-verify\b|\bgit\s+commit\b${ARGUMENTS}-[a-zA-Z]*n[a-zA-Z]*${FLAG_END}|\bLEFTHOOK\w*=|core\.hooksPath`, 'u'), reason: 'hooks are not optional' },
 	{ pattern: /\b(?:pkill|killall)\b/u, reason: 'kill by process ID only' },
 	{ pattern: /\bprettier\b/u, reason: 'no whole-tree formatters' },
 	{ pattern: /\b(?:hcloud|gandi|doctl|gh\s+repo\s+(?:create|edit|delete|rename|archive)|gh\s+(?:secret|variable|ruleset)|gh\s+api\s+[^&|;\n]*-X\s*(?:DELETE|PATCH|PUT))\b/u, reason: 'infrastructure needs the founder' },
 	{ pattern: /\.guard\.local\.yaml/u, reason: 'the local guard file stays on the founder\'s machine' }
 ];
+const GIT_GLOBAL = /\bgit(?:\s+(?:-[Cc]\s+(?:"[^"]*"|'[^']*'|\S+)|--(?:git-dir|work-tree|namespace|config-env|super-prefix)(?:=|\s+)\S+|--exec-path(?:=\S+)?|--(?:no-pager|paginate|bare|no-replace-objects|literal-pathspecs|glob-pathspecs|noglob-pathspecs|icase-pathspecs|no-optional-locks|no-advice|no-lazy-fetch)|-[pP]))+(?=\s|$)/gu;
 const REMOTE = /\b(?:ssh|scp|rsync|sftp)\b/u;
-const SHELL_PATH = /(?<=^|[\s"'=:<>])(?!\/\/)(?:~|\.\.|\/)[^\s"'`;|&<>()]*/gu;
+const SHELL_TOKEN = /(?<=^|[\s"'=:<>])[^\s"'`;|&<>()=:]+/gu;
+const PATH_LIKE = /^(?:~|\.\.|\/(?!\/))|(?:^|\/)\.\.(?:\/|$)/u;
+const NAMED_HOME = /^~[^/]/u;
 const PATCH_HEADER = /^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (?<path>.+)$/gmu;
 const PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
 const EDITING = new Set(['Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'apply_patch']);
-const GENERATED = `content${sep}export${sep}`;
+const GENERATED = `content${sep}export${sep}`.toLowerCase();
 const PRIVATE_FILE = '.guard.local.yaml';
 
 const callSchema = zod.object({ tool_name: zod.string(), tool_input: zod.record(zod.string(), zod.unknown()) });
@@ -59,9 +64,9 @@ export function inspect(call: Call, context: Context): readonly string[] {
 }
 
 function localContext(): Context {
-	const temporary = [tmpdir(), '/tmp'].filter((path) => existsSync(path)).map((path) => realpathSync(path));
+	const temporary = [tmpdir(), '/tmp'].filter((path) => existsSync(path)).map((path) => realpathSync.native(path));
 	const context = {
-		root: realpathSync(root),
+		root: realpathSync.native(root),
 		allowed: [...temporary, '/dev/null', '/dev/stdin', '/dev/stdout', '/dev/stderr'],
 		hosts: localHosts(root),
 		deploying: process.env['STRIKTA_SITE_DEPLOY'] === '1',
@@ -72,7 +77,8 @@ function localContext(): Context {
 
 function commandFindings(call: Call, context: Context): readonly string[] {
 	const command = shellCommand(call);
-	const ruled = COMMAND_RULES.filter((rule) => rule.pattern.test(command)).map((rule) => rule.reason);
+	const normalised = command.replace(GIT_GLOBAL, 'git');
+	const ruled = COMMAND_RULES.filter((rule) => rule.pattern.test(command) || rule.pattern.test(normalised)).map((rule) => rule.reason);
 	const chained = separated(command) ? ['no ; chains: use && so a failure stops the chain'] : [];
 	const remote = REMOTE.test(command) && !context.deploying ? ['remote access needs the founder\'s "deploy"'] : [];
 	const findings = [...ruled, ...chained, ...remote];
@@ -80,22 +86,24 @@ function commandFindings(call: Call, context: Context): readonly string[] {
 }
 
 function pathFindings(call: Call, context: Context): readonly string[] {
-	const located = candidatePaths(call, context).map((path) => locate(path, context));
+	const candidates = candidatePaths(call, context);
+	const named = candidates.filter((path) => NAMED_HOME.test(path)).map((path) => `a ~name path cannot be resolved: ${path}`);
+	const located = candidates.filter((path) => !NAMED_HOME.test(path)).map((path) => locate(path, context));
 	const outside = located.filter((path) => !isInside(path, context)).map((path) => `path outside this repository: ${path}`);
-	const local = located.filter((path) => relative(context.root, path) === PRIVATE_FILE).map(() => 'the local guard file stays on the founder\'s machine');
-	const editing = EDITING.has(call.tool_name);
-	const generated = editing ? located.filter((path) => `${relative(context.root, path)}${sep}`.startsWith(GENERATED)) : [];
-	const findings = [...outside, ...local, ...generated.map(() => 'content/export is generated: a new export is the only fix')];
+	const inner = located.map((path) => relative(context.root, path).toLowerCase());
+	const local = inner.filter((path) => path === PRIVATE_FILE).map(() => 'the local guard file stays on the founder\'s machine');
+	const generated = EDITING.has(call.tool_name) ? inner.filter((path) => `${path}${sep}`.startsWith(GENERATED)) : [];
+	const findings = [...named, ...outside, ...local, ...generated.map(() => 'content/export is generated: a new export is the only fix')];
 	return findings;
 }
 
 function candidatePaths(call: Call, context: Context): readonly string[] {
 	const fields = PATH_FIELDS.map((key) => call.tool_input[key]).filter((value) => typeof value === 'string');
-	const { pattern } = call.tool_input;
-	const glob = call.tool_name === 'Glob' && typeof pattern === 'string' && /^(?:~|\.\.|\/)/u.test(pattern) ? [pattern] : [];
-	const shell = call.tool_name === 'apply_patch' ? [] : (shellCommand(call).match(SHELL_PATH) ?? []);
+	const { pattern, glob } = call.tool_input;
+	const globs = [call.tool_name === 'Glob' ? pattern : undefined, call.tool_name === 'Grep' ? glob : undefined].filter((value): value is string => typeof value === 'string' && PATH_LIKE.test(value));
+	const shell = call.tool_name === 'apply_patch' ? [] : (shellCommand(call).match(SHELL_TOKEN) ?? []).filter((token) => PATH_LIKE.test(token));
 	const patched = [...patchText(call).matchAll(PATCH_HEADER)].map((match) => match.groups?.['path'] ?? '');
-	const paths = [...fields, ...glob, ...shell, ...patched].map((path) => path.replace(/^~(?=\/|$)/u, context.home));
+	const paths = [...fields, ...globs, ...shell, ...patched].map((path) => path.replace(/^~(?=\/|$)/u, context.home));
 	return paths;
 }
 
@@ -114,7 +122,7 @@ function patchText(call: Call): string {
 function locate(path: string, context: Context): string {
 	const absolute = isAbsolute(path) ? resolve(path) : resolve(context.root, path);
 	const existing = nearestExisting(absolute);
-	const located = resolve(realpathSync(existing), relative(existing, absolute));
+	const located = resolve(realpathSync.native(existing), relative(existing, absolute));
 	return located;
 }
 

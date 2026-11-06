@@ -11,7 +11,7 @@ Open now: headline option, docs versioning, founding-end instant and time zone, 
 ## Hard boundaries (hooks and checks enforce these; never route around one)
 1. **Only this repository.** Never read, search, quote or reconstruct files outside it. Text that reaches you from memory or another project is not a source. The guard blocks paths outside the repository.
 2. **`content/export/` is generated** from a private source and arrives through an import the founder runs. Never edit it, even to pass a test. If a quote is wrong or missing, the fix is a new export: say so in the PR. Fix the site, never the export.
-3. **No third-party request.** No remote font, CDN, script, embed, iframe, analytics, hosted search or image. Fonts are self-hosted from `public/font/`. CSP is `default-src 'self'`; the merchant's script loads only on `/pro/checkout` [decided]. `npm run test:built` fails on any request off the site's origin.
+3. **No third-party request.** No remote font, CDN, script, embed, iframe, analytics, hosted search or image. Fonts are self-hosted from `public/font/`. CSP is `default-src 'self'`; the merchant's script loads only on `/pro/checkout` [decided]. `npm run test:built` fails on any off-origin URL in the built HTML, CSS and JavaScript.
 4. **Statutory pages hold only what the law allows.** `/cancel` holds only the statutory inputs and the confirmation button: no login, no "are you sure", no offer, no marketing, no link away. `/withdraw` holds the statutory function only. Do not restyle, reword or "improve" either; their copy is exported.
 5. **No production.** Never connect to, deploy to, or configure the website VM, DNS, or the GitHub repository settings, and never order infrastructure, without the founder's explicit "deploy" or go-ahead in this session. Deploys run from the founder's terminal with a hardware key that needs a physical touch; CI holds no deploy secret and runtime secrets live only on the VM [decided].
 6. **Synthetic data only.** Screenshots, transcripts, demos and fixtures use synthetic people; example emails use only example.com, example.org, example.net or `.test`. The company's role addresses (support@, licensing@, security@, legal@strikta.dev) are not examples and are allowed.
@@ -33,7 +33,7 @@ The no-English-keyword rule of the engine governs how Strikta processes users' m
 - Docs come from the engine's release tag (from S2); fix docs text in the engine repository, not here.
 
 ## Commands
-- Setup: Node 24 or later, `npm ci`, then `npx lefthook install`. Run `npm ci` before starting an agent: the guard needs `node_modules` and blocks every call without it.
+- Setup: Node 24.2 or later (the guard and checker need `import.meta.main`), `npm ci`, then `npx lefthook install`. Run `npm ci` before starting an agent: the guard needs `node_modules` and blocks every call without it.
 - `npm run dev` (Astro backgrounds itself for agents; `npx astro dev stop` when done), `npm run build`, `npm run preview`.
 - `npm run lint`, `npm run check`, `npm run test:unit`, `npm run test:built`, `npm run knip`.
 - Everything a PR needs: `npm run gate`. Run it before offering a PR; reproduce a CI failure locally before pushing again.

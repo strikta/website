@@ -6,7 +6,7 @@ import { filledText, loadExport } from '../src/quote.ts';
 import { loadSlots, optionalSlot, type Slots } from '../src/slot.ts';
 import { lineAt, type Finding } from './finding.ts';
 import type { Local } from './local.ts';
-import { emailFindings, internalFindings, localFindings, privateFindings } from './text.ts';
+import { emailFindings, internalFindings, localFindings, privateFindings, termPositions } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
 type Built = { readonly pages: readonly Page[]; readonly files: readonly string[]; readonly styles: readonly Page[]; readonly scripts: readonly Page[] };
@@ -143,11 +143,11 @@ function covers(entry: string, route: string): boolean {
 	return covered;
 }
 
-/** Hosts and private terms in the markup, and private terms the visible text joins across tags. */
+/** Hosts and private terms in the markup, and each other private term the visible text joins across tags. */
 function pageLocalFindings(page: Page, local: Local): readonly Finding[] {
 	const marked = localFindings(page.file, page.html, local);
-	const shown = marked.some((finding) => finding.rule === 'private-term') ? [] : privateFindings(page.file, page.text, local.terms);
-	const findings = [...marked, ...shown];
+	const hidden = local.terms.filter((term) => termPositions(page.html, [term]).length === 0);
+	const findings = [...marked, ...privateFindings(page.file, page.text, hidden)];
 	return findings;
 }
 

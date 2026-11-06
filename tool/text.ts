@@ -13,6 +13,9 @@ const EXAMPLE_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|[a-z0-9-]+\.test)$/u
 const ROLE_ADDRESS = /^(?:support|licensing|security|legal)@strikta\.dev$/u;
 const TRAILER = /^co-authored-by:/imu;
 const WHITESPACE = /\s+/u;
+
+/** The fix printed, and the reason the guard gives, when a text names a private term. */
+export const PRIVATE_TERM = 'names a private term: remove it';
 const SPECIAL = /[.*+?^${}()|[\]\\/]/gu;
 
 /** Internal identifiers: record IDs, the record and task-list names, private folder names. */
@@ -47,18 +50,20 @@ export function hostFindings(file: string, text: string, hosts: readonly string[
 
 /** Private terms listed in the gitignored `.guard.local.yaml`. */
 export function privateFindings(file: string, text: string, terms: readonly string[]): readonly Finding[] {
-	const findings = termPositions(text, terms).map((position) => ({ file, line: lineAt(text, position), rule: 'private-term', fix: 'names a private term: remove it', section: 'Hard boundaries' }));
+	const composed = text.normalize('NFC');
+	const findings = termPositions(composed, terms).map((position) => ({ file, line: lineAt(composed, position), rule: 'private-term', fix: PRIVATE_TERM, section: 'Hard boundaries' }));
 	return findings;
 }
 
-/** Where any of the terms occurs, ignoring case and treating every whitespace run as one space. */
+/** Where any of the terms occurs in the NFC form of the text, ignoring case and treating every whitespace run as one space. */
 export function termPositions(text: string, terms: readonly string[]): readonly number[] {
-	const positions = terms.map(termPattern).flatMap((pattern) => [...text.matchAll(pattern)].map((match) => match.index));
+	const composed = text.normalize('NFC');
+	const positions = terms.map(termPattern).flatMap((pattern) => [...composed.matchAll(pattern)].map((match) => match.index));
 	return positions;
 }
 
 function termPattern(term: string): RegExp {
-	const words = term.trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
+	const words = term.normalize('NFC').trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
 	const pattern = new RegExp(words.join(String.raw`\s+`), 'giu');
 	return pattern;
 }

@@ -37,6 +37,14 @@ test('message rejects a private term', () => {
 	expect(run(['message', 'message'], { ...LOCAL, message: 'Fix 000000-0000\n' }).output).toContain('commit message:1: private-term');
 });
 
+test.each([
+	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 0],
+	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1]
+])('pushed reads the local tips from the pre-push input %j', (input, status) => {
+	const child = spawnSync(process.execPath, [join(import.meta.dirname, 'check.ts'), 'pushed'], { input, encoding: 'utf8' });
+	expect(child.status).toBe(status);
+});
+
 test('pushed checks every commit message about to be pushed, merges included', () => {
 	const tree = workspace(LOCAL);
 	const git = (input: string, ...argv: readonly string[]): string => execFileSync('git', ['-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com', ...argv], { cwd: tree.directory, input, encoding: 'utf8' }).trim();

@@ -19,6 +19,7 @@ const COMMANDS: ReadonlyMap<string, Command> = new Map<string, Command>([
 	['pushed', pushed]
 ]);
 const UNSET = /^0+$/u;
+const LOG_BUFFER = 256 * 1024 * 1024;
 const MISSING_LOCAL = 'warning: .guard.local.yaml is missing: the private-term rule is off\n';
 const DATA_RULES: ReadonlyMap<string, (file: string, text: string) => readonly Finding[]> = new Map([
 	['data/offer.yaml', foundingFindings],
@@ -94,7 +95,7 @@ function pushedTips(refs: string): readonly string[] {
 }
 
 function unpushedCommits(directory: string, tips: readonly string[]): readonly Commit[] {
-	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '--format=%H%x1f%B%x00', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8' });
+	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '--format=%H%x1f%B%x00', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: LOG_BUFFER });
 	const commits = log
 		.split('\0')
 		.map((entry) => entry.trim().split('\u001f'))

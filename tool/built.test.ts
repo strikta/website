@@ -113,6 +113,10 @@ test.each([
 	expect(fixes({ [file]: content }, { terms }).filter((fix) => fix === 'private-term: names a private term: remove it')).toHaveLength(1);
 });
 
+test('flags a second private term that only the visible text joins', () => {
+	expect(fixes({ 'dist/index.html': page('<p>000000-0000</p><p>Exempel<b>gatan</b> 1</p>') }, { terms }).filter((fix) => fix.startsWith('private-term'))).toHaveLength(2);
+});
+
 test('passes a page without a private term', () => {
 	expect(fixes({ 'dist/index.html': page('<p>Exempelgatan, a synthetic street.</p>') }, { terms })).toEqual([]);
 });

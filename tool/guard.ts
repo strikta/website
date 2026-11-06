@@ -4,7 +4,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import * as zod from 'zod';
 import { localSettings, root } from './local.ts';
 import { separated } from './shell.ts';
-import { termPositions } from './text.ts';
+import { PRIVATE_TERM, termPositions } from './text.ts';
 
 export type Call = { readonly tool_name: string; readonly tool_input: Readonly<Record<string, unknown>> };
 export type Context = {
@@ -149,13 +149,13 @@ function hostFindings(call: Call, context: Context): readonly string[] {
 }
 
 function privateFindings(call: Call, context: Context): readonly string[] {
-	const named = inputStrings(call.tool_input).some((text) => termPositions(text, context.terms).length > 0);
-	const findings = named ? ['names a private term: remove it'] : [];
+	const named = inputTexts(call.tool_input).some((text) => termPositions(text, context.terms).length > 0);
+	const findings = named ? [PRIVATE_TERM] : [];
 	return findings;
 }
 
-function inputStrings(value: unknown): readonly string[] {
-	const nested = typeof value === 'object' && value !== null ? Object.values(value).flatMap(inputStrings) : [];
-	const strings = typeof value === 'string' ? [value] : nested;
-	return strings;
+function inputTexts(value: unknown): readonly string[] {
+	const nested = typeof value === 'object' && value !== null ? Object.values(value).flatMap(inputTexts) : [];
+	const texts = typeof value === 'string' ? [value] : nested;
+	return texts;
 }

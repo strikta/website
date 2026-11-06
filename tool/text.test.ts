@@ -38,6 +38,11 @@ test.each(['Exempelgatan', 'Exempelgatan, 1', '00000 Exempelby', '+00 00-000 00'
 	expect(termPositions(text, terms)).toEqual([]);
 });
 
+test('matches a decomposed accent against a composed term', () => {
+	expect(termPositions('Ligger på Exempelva\u0308gen', ['Exempelvägen'])).toEqual([10]);
+	expect(privateFindings('page.md', 'Exempelvägen', ['Exempelva\u0308gen'])).toHaveLength(1);
+});
+
 test('reports the line of a private term and passes without any terms', () => {
 	expect(privateFindings('page.md', 'first\nsecond 000000-0000', terms).map((finding) => finding.line)).toEqual([2]);
 	expect(termPositions('Exempelgatan 1', [])).toEqual([]);

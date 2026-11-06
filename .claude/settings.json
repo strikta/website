@@ -1,0 +1,18 @@
+{
+	"permissions": {
+		"deny": ["Edit(./content/export/**)", "Write(./content/export/**)", "Read(./.guard.local.yaml)", "Edit(./.guard.local.yaml)", "Write(./.guard.local.yaml)"]
+	},
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash|Read|Grep|Glob|Edit|MultiEdit|Write|NotebookEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "cd \"$CLAUDE_PROJECT_DIR\" && node tool/guard.ts || { code=$?; [ $code -eq 2 ] || echo \"Blocked: the guard failed to run (exit $code)\" >&2; exit 2; }"
+					}
+				]
+			}
+		]
+	}
+}

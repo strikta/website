@@ -1,0 +1,24 @@
+pre-commit:
+  piped: true
+  commands:
+    reentry:
+      run: '[ -z "$STRIKTA_HOOK_ACTIVE" ] || { echo "hook re-entered: a test committed into a hooked repository" >&2; exit 1; }'
+    secrets:
+      run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --pre-commit --staged --redact --no-banner
+    scan:
+      run: node tool/check.ts scan {staged_files}
+    lint:
+      glob: "*.{ts,astro,js}"
+      run: npx eslint --max-warnings 0 {staged_files}
+    types:
+      run: npm run check
+    unit:
+      run: STRIKTA_HOOK_ACTIVE=1 npm run test:unit
+commit-msg:
+  commands:
+    message:
+      run: node tool/check.ts message {1}
+pre-push:
+  commands:
+    built:
+      run: npm run build && npm run test:built

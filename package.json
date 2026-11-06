@@ -1,0 +1,37 @@
+{
+	"name": "strikta-website",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+		"build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+		"preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
+		"check": "ASTRO_TELEMETRY_DISABLED=1 astro check",
+		"lint": "eslint . --max-warnings 0",
+		"test:unit": "vitest run",
+		"test:built": "node tool/check.ts built dist",
+		"knip": "knip --config knip.yaml",
+		"gate": "npm run lint && npm run check && npm run test:unit && npm run knip && npm run build && npm run test:built"
+	},
+	"dependencies": {
+		"astro": "7.4.7",
+		"yaml": "2.9.1",
+		"zod": "4.6.7"
+	},
+	"devDependencies": {
+		"@astrojs/check": "0.9.12",
+		"@eslint/js": "10.0.1",
+		"@types/node": "24.19.2",
+		"eslint": "10.14.0",
+		"eslint-plugin-astro": "3.2.1",
+		"globals": "17.14.0",
+		"knip": "6.44.1",
+		"lefthook": "2.2.2",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.72.1",
+		"vitest": "5.1.0"
+	}
+}

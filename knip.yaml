@@ -1,0 +1,6 @@
+$schema: https://unpkg.com/knip@6/schema.json
+# The guard runs from the agent hooks, which knip cannot see.
+entry:
+  - tool/guard.ts
+project:
+  - "**/*.{ts,astro,js}"

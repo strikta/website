@@ -1,0 +1,10 @@
+{
+	"extends": "astro/tsconfigs/strictest",
+	"compilerOptions": {
+		"checkJs": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"erasableSyntaxOnly": true,
+		"types": ["node"]
+	},
+	"exclude": ["dist", "node_modules", ".cache"]
+}

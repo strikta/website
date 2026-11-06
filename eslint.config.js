@@ -18,6 +18,7 @@ const structure = [
 const thirdParty = { selector: "Literal[value=/https?:\\/\\/(?!strikta\\.dev|github\\.com\\/strikta)/]", message: 'No third-party URL in code: see AGENTS.md, "Hard boundaries".' };
 
 /** @type {import('eslint').Linter.RulesRecord} */
+/** @type {import('eslint').Linter.RulesRecord} */
 const house = {
 	'no-restricted-syntax': ['error', ...structure, thirdParty],
 	'no-console': 'error',

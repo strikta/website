@@ -117,13 +117,25 @@ test.each([
 	['dist/index.html', page('<template><p>Exempel<b>gatan</b> 1</p></template>')],
 	['dist/index.html', page('<img src="/mark.svg" alt="Exempelgatan&#32;1">')],
 	['dist/index.html', page('<a href="/legal" title=\'000000&#x2d;0000\'>Legal</a>')],
-	['dist/index.html', page('<p>Exempel&shy;gatan 1</p>')]
+	['dist/index.html', page('<p>Exempel&shy;gatan 1</p>')],
+	['dist/index.html', page('<p>Exempelgatan<br>1</p>')],
+	['dist/index.html', page('<p>Exempelgatan</p><p>1</p>')],
+	['dist/index.html', page('<table><tr><td>Exempelgatan</td><td>1</td></tr></table>')],
+	['dist/index.html', page('<!-- Exempelgat&#97;n 1 --><p>Synthetic.</p>')],
+	['dist/index.html', page('<script>const card = "Exempelgatan\\u00201";</script>')],
+	['dist/_astro/site.css', 'body::after { content: "Exempelgatan\\20 1"; }'],
+	['dist/_astro/copy.js', 'const card = "Exempelgatan\\x20\\u{31}";'],
+	['dist/notes.txt', 'Exempelgatan 1'.replace(/(?<letter>.)/gu, '$<letter>\u0000')]
 ])('flags a private term once in %s', (file, content) => {
 	expect(fixes({ [file]: content }, { terms }).filter((fix) => fix === 'private-term: names a private term: remove it')).toHaveLength(1);
 });
 
 test('flags a second private term that only the visible text joins', () => {
 	expect(fixes({ 'dist/index.html': page('<p>000000-0000</p><p>Exempel<b>gatan</b> 1</p>') }, { terms }).filter((fix) => fix.startsWith('private-term'))).toHaveLength(2);
+});
+
+test('leaves an entity or escape past the last code point as written', () => {
+	expect(fixes({ 'dist/_astro/copy.js': 'const marks = "&#99999999; &#x110000; \\u{110000}";' }, { terms })).toEqual([]);
 });
 
 test('skips a binary file in the build', () => {

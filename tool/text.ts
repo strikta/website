@@ -56,7 +56,7 @@ export function privateFindings(file: string, text: string, terms: readonly stri
 	return findings;
 }
 
-/** Where any of the terms occurs in the normalised text, ignoring case and treating every whitespace run as one space. */
+/** Where any of the terms occurs in the normalised text, ignoring case; the words of a term match with any whitespace or none between them, as a page shows text joined across tags. */
 export function termPositions(text: string, terms: readonly string[]): readonly number[] {
 	const positions = matchPositions(normalised(text), terms);
 	return positions;
@@ -75,7 +75,7 @@ function matchPositions(normal: string, terms: readonly string[]): readonly numb
 
 function termPattern(term: string): RegExp {
 	const words = normalised(term).trim().split(WHITESPACE).map((word) => word.replace(SPECIAL, String.raw`\$&`));
-	const pattern = new RegExp(words.join(String.raw`\s+`), 'giu');
+	const pattern = new RegExp(words.join(String.raw`\s*`), 'giu');
 	return pattern;
 }
 

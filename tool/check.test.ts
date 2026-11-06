@@ -33,6 +33,12 @@ test('scan warns once and passes when the local guard file is missing', () => {
 	expect(run(['scan', 'notes.md'], { 'notes.md': 'Exempelgatan 1\n' })).toEqual({ code: 0, output: 'warning: .guard.local.yaml is missing: the private-term rule is off\n' });
 });
 
+test('scan flags a private term in a file name', () => {
+	const { code, output } = run(['scan', 'Exempelgatan 1.txt'], { ...LOCAL, 'Exempelgatan 1.txt': 'Synthetic.\n' });
+	expect(code).toBe(1);
+	expect(output).toContain('Exempelgatan 1.txt (file name):1: private-term');
+});
+
 test('message rejects a private term', () => {
 	expect(run(['message', 'message'], { ...LOCAL, message: 'Fix 000000-0000\n' }).output).toContain('commit message:1: private-term');
 });
@@ -62,7 +68,9 @@ function pushedOutput(repository: Repository, tips: readonly string[]): { code: 
 
 test.each([
 	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 0],
-	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1]
+	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1],
+	['refs/heads/Exempelgatan1 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 1],
+	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/tags/Exempelgatan1 1111111111111111111111111111111111111111\n', 1]
 ])('pushed reads the local tips from the pre-push input %j', (input, status) => {
 	const synthetic = repository(LOCAL);
 	const script = `import { check } from ${JSON.stringify(join(import.meta.dirname, 'check.ts'))}\nprocess.exitCode = check(['pushed'], process.argv[1])\n`;
@@ -91,6 +99,27 @@ test('pushed refuses a private term that an unpushed commit adds and a later one
 	expect(code).toBe(1);
 	expect(output).toContain('notes.md (in a pushed commit):2: private-term');
 	expect(output).not.toContain('mark.bin');
+});
+
+test('pushed refuses a private term in a file name, an empty file included, and in the author', () => {
+	const synthetic = repository(LOCAL);
+	const named = synthetic.commit('Add notes\n', { 'Exempelgatan 1.txt': '' });
+	const authored = execFileSync('git', ['-c', 'user.name=Exempelgatan 1', '-c', 'user.email=ada@example.com', 'commit-tree', synthetic.git('', 'mktree'), '-m', 'Start'], { cwd: synthetic.directory, encoding: 'utf8' }).trim();
+	const outputs = [pushedOutput(synthetic, [named]), pushedOutput(synthetic, [authored])];
+	synthetic.remove();
+	expect(outputs.map(({ code }) => code)).toEqual([1, 1]);
+	expect(outputs.map(({ output }) => output).join('')).toContain(`commit ${named} (file name):1: private-term`);
+	expect(outputs.map(({ output }) => output).join('')).toMatch(new RegExp(`commit ${authored}:\\d+: private-term`, 'u'));
+});
+
+test('pushed refuses a private term in an annotated tag message', () => {
+	const synthetic = repository(LOCAL);
+	const start = synthetic.commit('Start\n', {});
+	const tag = synthetic.git(`object ${start}\ntype commit\ntag synthetic\ntagger Synthetic <ada@example.com> 0 +0000\n\nExempelgatan 1\n`, 'mktag');
+	const { code, output } = pushedOutput(synthetic, [tag]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain(`tag ${tag}:6: private-term`);
 });
 
 test('pushed skips content a remote already holds', () => {

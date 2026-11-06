@@ -34,6 +34,10 @@ const SCRIPT = /\.m?js$/u;
 const SITE_HOST = 'strikta.dev';
 const CHECKOUT = '/pro/checkout';
 const ENTITIES: Readonly<Record<string, string>> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', euro: '€', mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', middot: '·', copy: '©', shy: '\u00ad' };
+const ENTITY = /&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/giu;
+const ESCAPE = /\\(?:u\{([0-9a-f]{1,6})\}|u([0-9a-f]{4})|x([0-9a-f]{2})|([0-9a-f]{1,6})\s?)/giu;
+const LAST_CODE_POINT = 0x10ffff;
+const CONTROL = /(?![\t\n\v\f\r])\p{Cc}/u;
 const stageSchema = zod.object({ current: zod.string().min(1), routes: zod.array(zod.object({ path: zod.string().startsWith('/'), stages: zod.array(zod.string()) }).strict()) }).strict();
 
 /** `dist/`: no placeholder, price word, third-party request, internal ID, host, private term (in any text file), stray page or missing quote. */
@@ -49,7 +53,7 @@ export function builtFindings(dist: string, root: string, local: Local): readonl
 		...pageLocalFindings(page, local)
 	]);
 	const requestFindings = [...built.styles.flatMap((style) => thirdPartyFindings(style, slots)), ...built.scripts.flatMap(absoluteFindings)];
-	const textFindings = built.texts.flatMap((source) => encodedFindings(source.file, source.content, decode(source.content), local));
+	const textFindings = built.texts.flatMap((source) => encodedFindings(source.file, source.content, decode(decodeEscapes(source.content)), local));
 	const findings = [...pageFindings, ...requestFindings, ...textFindings, ...quoteFindings(built, root, slots), ...stageFindings(built, root)];
 	return findings;
 }
@@ -80,11 +84,20 @@ function readBuilt(dist: string, root: string): Built {
 	return built;
 }
 
-/** A built file that holds no NUL byte, read as text; none for a binary file. */
+/** A built file read as text: UTF-8 without a NUL byte, otherwise each UTF-16 reading that is text; none for a binary file. */
 function sourceOf(path: string, root: string): readonly Source[] {
 	const content = readFileSync(path);
-	const sources = content.includes(0) ? [] : [{ file: relative(root, path), content: content.toString('utf8') }];
+	const file = relative(root, path);
+	const readings = content.includes(0) ? wideReadings(content) : [content.toString('utf8')];
+	const sources = readings.map((reading) => ({ file, content: reading }));
 	return sources;
+}
+
+/** The little- and big-endian UTF-16 readings that are well formed and hold no control character but whitespace. */
+function wideReadings(content: Buffer): readonly string[] {
+	const swapped = Buffer.from(content.subarray(0, content.length - (content.length % 2))).swap16();
+	const readings = [content.toString('utf16le'), swapped.toString('utf16le')].filter((reading) => reading.isWellFormed() && !CONTROL.test(reading));
+	return readings;
 }
 
 function routeOf(file: string): string {
@@ -165,19 +178,19 @@ function pageLocalFindings(page: Page, local: Local): readonly Finding[] {
 	return findings;
 }
 
-/** Hosts and private terms in the raw content, and each other private term only its decoded form shows. */
+/** Hosts and private terms in the raw content, and once each other private term only its decoded form shows. */
 function encodedFindings(file: string, content: string, decoded: string, local: Local): readonly Finding[] {
 	const marked = localFindings(file, content, local);
 	const hidden = local.terms.filter((term) => termPositions(content, [term]).length === 0);
-	const findings = [...marked, ...privateFindings(file, decoded, hidden)];
+	const findings = [...marked, ...hidden.flatMap((term) => privateFindings(file, decoded, [term]).slice(0, 1))];
 	return findings;
 }
 
-/** The whole document's text with tags joined, <noscript> and <template> included, then each attribute value, all entity-decoded. */
+/** The whole document's text with tags joined, <noscript> and <template> included, then each attribute value, then the whole markup with comments, scripts and styles unescaped; all entity-decoded. */
 function termText(html: string): string {
 	const shown = html.replace(UNSHOWN, '');
 	const values = [...shown.matchAll(ATTRIBUTE)].map((match) => match.groups?.['double'] ?? match.groups?.['single'] ?? match.groups?.['bare'] ?? '');
-	const text = [shown.replace(TAG, ''), ...values].map((part) => collapse(decode(part))).join('\n');
+	const text = [shown.replace(TAG, ''), ...values, decodeEscapes(html)].map((part) => collapse(decode(part))).join('\n');
 	return text;
 }
 
@@ -187,13 +200,25 @@ function pageFinding(page: Page, excerpt: string, rule: string, fix: string, sec
 	return finding;
 }
 
+/** HTML entities decoded; an unknown name or a number past the last code point stays as written. */
 function decode(html: string): string {
-	const text = html.replace(/&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/giu, (entity: string, decimal?: string, hex?: string, name?: string) => {
+	const text = html.replace(ENTITY, (entity: string, decimal?: string, hex?: string, name?: string) => {
 		const code = decimal === undefined ? (hex === undefined ? undefined : Number.parseInt(hex, 16)) : Number.parseInt(decimal, 10);
-		const character = code === undefined ? (ENTITIES[name ?? ''] ?? entity) : String.fromCodePoint(code);
-		return character;
+		const decoded = code === undefined ? (ENTITIES[name ?? ''] ?? entity) : character(code, entity);
+		return decoded;
 	});
 	return text;
+}
+
+/** JavaScript (`\u0020`, `\u{20}`, `\x20`) and CSS (`\20 `) escapes decoded, so text a script or style writes is read as shown; a backslash before any other hex digit is read the CSS way. */
+function decodeEscapes(source: string): string {
+	const text = source.replace(ESCAPE, (sequence: string, braced?: string, unicode?: string, byte?: string, css?: string) => character(Number.parseInt(braced ?? unicode ?? byte ?? css ?? '', 16), sequence));
+	return text;
+}
+
+function character(code: number, written: string): string {
+	const decoded = code > LAST_CODE_POINT ? written : String.fromCodePoint(code);
+	return decoded;
 }
 
 function collapse(text: string): string {

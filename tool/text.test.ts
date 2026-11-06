@@ -30,11 +30,11 @@ test('flags a local host in any case', () => {
 	expect(hostFindings('page.md', 'Served from VM.Example.Test', hosts).map((finding) => finding.rule)).toEqual(['local-host']);
 });
 
-test.each(['exempelgatan 1', 'EXEMPELGATAN\t\n 1', '000 00 exempelby', '000\u00a000\nExempelby', 'Call +00 (0)0-000  00', 'Born 000000-0000.'])('flags the private term in %j', (text) => {
+test.each(['exempelgatan 1', 'EXEMPELGATAN\t\n 1', '000 00 exempelby', '000\u00a000\nExempelby', 'Call +00 (0)0-000  00', 'Born 000000-0000.', '00000 Exempelby'])('flags the private term in %j', (text) => {
 	expect(privateFindings('page.md', text, terms).map((finding) => finding.fix)).toEqual(['names a private term: remove it']);
 });
 
-test.each(['Exempelgatan', 'Exempelgatan, 1', '00000 Exempelby', '+00 00-000 00', '000000 0000', '000000x0000'])('passes %j without a private term', (text) => {
+test.each(['Exempelgatan', 'Exempelgatan, 1', '00000 Exempelstad', '+00 00-000 00', '000000 0000', '000000x0000'])('passes %j without a private term', (text) => {
 	expect(termPositions(text, terms)).toEqual([]);
 });
 
@@ -45,6 +45,10 @@ test('matches a decomposed accent against a composed term', () => {
 
 test.each(['Exempel\u00adgatan 1', 'Exem\u200bpel\u200dgatan\u2060 1', '\ufeffExempelgatan \uff11', '\uff10\uff10\uff10\uff10\uff10\uff10-0000', 'Exempelga\u200b\u0308tan 1'])('matches the NFKC form without hidden characters in %j', (text) => {
 	expect(termPositions(text, ['Exempelgatan 1', '000000-0000', 'Exempelgätan 1']).length).toBeGreaterThan(0);
+});
+
+test.each(['Exempelgatan1', 'Exempelgatan \t\n 1'])('matches the words of a term with any whitespace or none between them in %j', (text) => {
+	expect(termPositions(text, ['Exempelgatan 1'])).toEqual([0]);
 });
 
 test('reports the line of a private term after hidden characters are removed', () => {

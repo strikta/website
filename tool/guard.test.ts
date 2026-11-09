@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, expect, test } from 'vitest';
 import * as zod from 'zod';
+import { isolated } from './fixture.ts';
 import { inspect, type Call, type Context } from './guard.ts';
 import { root } from './local.ts';
 
@@ -174,7 +175,7 @@ test.each([
 });
 
 function run(input: string): { status: number | null; stderr: string } {
-	const child = spawnSync(process.execPath, [join(import.meta.dirname, 'guard.ts')], { input, encoding: 'utf8' });
+	const child = spawnSync(process.execPath, [join(import.meta.dirname, 'guard.ts')], { input, encoding: 'utf8', env: isolated() });
 	const outcome = { status: child.status, stderr: child.stderr };
 	return outcome;
 }
@@ -202,6 +203,6 @@ test.each(['.claude/settings.json', '.codex/hooks.json'])('the hook wrapper in %
 });
 
 function wrapped(command: string, call: Call): number | null {
-	const child = spawnSync('sh', ['-c', command], { cwd: root, input: JSON.stringify(call), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: root } });
+	const child = spawnSync('sh', ['-c', command], { cwd: root, input: JSON.stringify(call), encoding: 'utf8', env: { ...isolated(), CLAUDE_PROJECT_DIR: root } });
 	return child.status;
 }

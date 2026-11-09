@@ -1,13 +1,17 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { check } from './check.ts';
-import { syntheticExport, workspace } from './fixture.ts';
+import { isolated, syntheticExport, unhook, workspace } from './fixture.ts';
 
 const printed = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
+unhook();
+
 afterEach(() => {
 	printed.mockClear();
+	unhook();
 });
 
 function run(argv: readonly string[], files: Readonly<Record<string, string>>): { code: number; output: string } {
@@ -60,7 +64,47 @@ test('an unknown subcommand prints usage', () => {
 
 test('the command line exits 1 on a finding and 0 without one', () => {
 	const tree = workspace({ 'bad.txt': 'Add the guard\n\nBody\n', 'good.txt': 'Add the guard\n' });
-	const exit = (file: string): number | null => spawnSync(process.execPath, [join(import.meta.dirname, 'check.ts'), 'message', join(tree.directory, file)]).status;
+	const exit = (file: string): number | null => spawnSync(process.execPath, [join(import.meta.dirname, 'check.ts'), 'message', join(tree.directory, file)], { env: isolated() }).status;
 	expect([exit('bad.txt'), exit('good.txt')]).toEqual([1, 0]);
 	tree.remove();
 });
+
+type Repository = { readonly directory: string; readonly git: (input: string, ...argv: readonly string[]) => string; readonly commit: (message: string, files: Readonly<Record<string, string>>, parent?: string) => string; readonly remove: () => void };
+
+/** A synthetic git repository in a temporary folder; commits are written with plumbing, so no hook runs. */
+function repository(files: Readonly<Record<string, string>>): Repository {
+	const tree = workspace(files);
+	const git = (input: string, ...argv: readonly string[]): string => execFileSync('git', ['-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com', ...argv], { cwd: tree.directory, input, encoding: 'utf8', env: isolated() }).trim();
+	git('', 'init', '--quiet');
+	const commit = (message: string, content: Readonly<Record<string, string>>, parent?: string): string => {
+		const entries = Object.entries(content).map(([path, text]) => `100644 blob ${git(text, 'hash-object', '-w', '--stdin')}\t${path}\n`);
+		const parents = parent === undefined ? [] : ['-p', parent];
+		const sha = git(message, 'commit-tree', git(entries.join(''), 'mktree'), ...parents);
+		return sha;
+	};
+	const created = { directory: tree.directory, git, commit, remove: tree.remove };
+	return created;
+}
+
+test('a temporary repository leaves the repository that inherited git variables name untouched', () => {
+	const decoy = repository({ 'notes.md': 'Synthetic.\n' });
+	const before = contents(join(decoy.directory, '.git'));
+	vi.stubEnv('GIT_DIR', join(decoy.directory, '.git'));
+	vi.stubEnv('GIT_INDEX_FILE', join(decoy.directory, '.git', 'index'));
+	const synthetic = repository({});
+	synthetic.commit('Start\n', { 'notes.md': 'Synthetic.\n' });
+	unhook();
+	const after = contents(join(decoy.directory, '.git'));
+	const bare = decoy.git('', 'config', '--get', 'core.bare');
+	synthetic.remove();
+	decoy.remove();
+	expect(bare).toBe('false');
+	expect(after).toEqual(before);
+});
+
+/** Every file under a folder, keyed by its relative path. */
+function contents(directory: string): Readonly<Record<string, string>> {
+	const paths = readdirSync(directory, { recursive: true, encoding: 'utf8' }).filter((path) => statSync(join(directory, path)).isFile());
+	const files = Object.fromEntries(paths.map((path) => [path, readFileSync(join(directory, path), 'latin1')] as const));
+	return files;
+}

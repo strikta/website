@@ -63,7 +63,7 @@ Test data is synthetic; checker tests use made-up identifiers with the prefix `Z
 
 ## Git and pull requests (all of it is public)
 - One-line commit messages in plain English; no AI co-author; `git add` named files only.
-- Never: `git stash`, `reset --hard`, `clean`, `checkout --`, `restore`, force push (use `--force-with-lease` on your own branch), `--no-verify` or disabled hooks, `pkill`/`killall`, `;` as a command separator (inside quotes or a here-document it is text, and fine), prettier or any whole-tree formatter.
+- Never: `git stash`, `reset --hard`, `clean`, `checkout --`, `restore`, force push (use `--force-with-lease` on your own branch), `--no-verify` or disabled hooks, `pkill`/`killall`, any `;` in a command, even quoted (use `&&`), prettier or any whole-tree formatter.
 - Every feature lands by PR from `feature/…`, `fix/…` or `refactor/…`; merge commits only.
 - Mark a PR ready once, when finished; never offer a draft. Do the fix; do not describe it.
 - Before offering a PR, have an independent agent review it against this file: quote provenance, stage, privacy (no new request or cookie), accessibility, budgets, statutory pages, public metadata. Fix its findings first. The reviewer verifies claims by running the checks, not by rereading the diff.

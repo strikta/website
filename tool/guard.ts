@@ -3,7 +3,6 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import * as zod from 'zod';
 import { localHosts, root } from './local.ts';
-import { separated } from './shell.ts';
 
 export type Call = { readonly tool_name: string; readonly tool_input: Readonly<Record<string, unknown>> };
 export type Context = {
@@ -28,7 +27,8 @@ const COMMAND_RULES: readonly Rule[] = [
 	{ pattern: /\b(?:pkill|killall)\b/u, reason: 'kill by process ID only' },
 	{ pattern: /\bprettier\b/u, reason: 'no whole-tree formatters' },
 	{ pattern: /\b(?:hcloud|gandi|doctl|gh\s+repo\s+(?:create|edit|delete|rename|archive)|gh\s+(?:secret|variable|ruleset)|gh\s+api\s+[^&|;\n]*-X\s*(?:DELETE|PATCH|PUT))\b/u, reason: 'infrastructure needs the founder' },
-	{ pattern: /\.guard\.local\.yaml/u, reason: 'the local guard file stays on the founder\'s machine' }
+	{ pattern: /\.guard\.local\.yaml/u, reason: 'the local guard file stays on the founder\'s machine' },
+	{ pattern: /;/u, reason: 'no ; chains: use && so a failure stops the chain' }
 ];
 const GIT_GLOBAL = /\bgit(?:\s+(?:-[Cc]\s+(?:"[^"]*"|'[^']*'|\S+)|--(?:git-dir|work-tree|namespace|config-env|super-prefix)(?:=|\s+)\S+|--exec-path(?:=\S+)?|--(?:no-pager|paginate|bare|no-replace-objects|literal-pathspecs|glob-pathspecs|noglob-pathspecs|icase-pathspecs|no-optional-locks|no-advice|no-lazy-fetch)|-[pP]))+(?=\s|$)/gu;
 const REMOTE = /\b(?:ssh|scp|rsync|sftp)\b/u;
@@ -79,9 +79,8 @@ function commandFindings(call: Call, context: Context): readonly string[] {
 	const command = shellCommand(call);
 	const normalised = command.replace(GIT_GLOBAL, 'git');
 	const ruled = COMMAND_RULES.filter((rule) => rule.pattern.test(command) || rule.pattern.test(normalised)).map((rule) => rule.reason);
-	const chained = separated(command) ? ['no ; chains: use && so a failure stops the chain'] : [];
 	const remote = REMOTE.test(command) && !context.deploying ? ['remote access needs the founder\'s "deploy"'] : [];
-	const findings = [...ruled, ...chained, ...remote];
+	const findings = [...ruled, ...remote];
 	return findings;
 }
 

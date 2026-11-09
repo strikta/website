@@ -31,15 +31,15 @@ jobs:
       - run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner
       - name: Scan every tracked file
         run: git ls-files -z | xargs -0 node tool/check.ts scan
-      - name: Check the pull request's commit messages
+      # The local pre-push check can be bypassed; this one cannot. Only the base stays a remote ref, so every commit of the pull request counts as unpushed.
+      - name: Check the pull request's branch name and every commit's message, file names and content
         if: github.event_name == 'pull_request'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
+          BRANCH: ${{ github.head_ref }}
         run: |
-          for commit in $(git rev-list --no-merges "$BASE..$HEAD")
-          do
-            git log -1 --format=%B "$commit" > "$RUNNER_TEMP/message"
-            node tool/check.ts message "$RUNNER_TEMP/message" || exit 1
-          done
+          git for-each-ref --format='%(refname)' refs/remotes | xargs -r -n 1 git update-ref -d --no-deref
+          git update-ref refs/remotes/origin/base "$BASE"
+          printf 'refs/heads/%s %s refs/heads/%s %s\n' "$BRANCH" "$HEAD" "$BRANCH" "$BASE" | node tool/check.ts pushed
       - run: npm run gate

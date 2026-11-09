@@ -10,7 +10,7 @@ import { emailFindings, hostFindings, internalFindings, messageFindings } from '
 
 type Command = (targets: readonly string[], directory: string) => readonly Finding[];
 type Text = { readonly path: string; readonly text: string };
-type Entry = { readonly sha: string; readonly path: string };
+type Change = { readonly commit: string; readonly mode: string; readonly sha: string; readonly path: string };
 type Push = { readonly tips: readonly string[]; readonly names: readonly string[] };
 
 const EXPORT = 'content/export/';
@@ -21,10 +21,13 @@ const COMMANDS: ReadonlyMap<string, Command> = new Map<string, Command>([
 	['pushed', pushed]
 ]);
 const UNSET = /^0+$/u;
-const LOG_BUFFER = 256 * 1024 * 1024;
-const OBJECT = /^(?<sha>[0-9a-f]+) (?<path>.+)$/u;
+const GIT_BUFFER = 256 * 1024 * 1024;
+const COMMIT = /^(?<commit>[0-9a-f]+)\0/u;
+const CHANGE = /:\d{6} (?<mode>\d{6}) [0-9a-f]+ (?<sha>[0-9a-f]+) [A-Z]+\0(?<path>[^\0]+)\0/gu;
+const GITLINK = '160000';
 const BATCH_HEADER = /^[0-9a-f]+ blob (?<size>\d+)$/u;
 const RECORD = '\u001e';
+const EMPTY_PUSH: Finding = { file: 'pre-push input', line: 1, rule: 'pushed', fix: 'no ref to check: nothing to push, or the hook did not forward the pre-push input', section: 'Hard boundaries' };
 const DATA_RULES: ReadonlyMap<string, (file: string, text: string) => readonly Finding[]> = new Map([
 	['data/offer.yaml', foundingFindings],
 	['data/tokens.yaml', contrastFindings]
@@ -77,14 +80,20 @@ function built(targets: readonly string[], directory: string): readonly Finding[
 	return findings;
 }
 
-/** Everything a push publishes (pre-push refs on stdin, or revisions): no internal identifier or host in a ref name, or in any unpushed commit's message, file names or file content. */
+/** Everything a push publishes (pre-push refs on stdin, or revisions): no internal identifier or host in a ref name, or in any unpushed commit's message, file names or file content; empty pre-push input fails. */
 function pushed(targets: readonly string[], directory: string): readonly Finding[] {
+	const push = targets.length > 0 ? { tips: targets, names: targets } : pushedRefs(readFileSync(0, 'utf8'));
+	const findings = push.names.length === 0 ? [EMPTY_PUSH] : pushFindings(push, directory);
+	return findings;
+}
+
+function pushFindings({ tips, names }: Push, directory: string): readonly Finding[] {
 	const hosts = localHosts(directory);
-	const { tips, names } = targets.length > 0 ? { tips: targets, names: targets } : pushedRefs(readFileSync(0, 'utf8'));
+	const changes = unpushedChanges(directory, tips);
 	const refs = names.flatMap((name) => [...internalFindings('a pushed ref name', name), ...hostFindings('a pushed ref name', name, hosts)]);
 	const messages = unpushedMessages(directory, tips).flatMap(({ path, text }) => messageFindings(path, text, hosts));
-	const paths = unpushedPaths(directory, tips).flatMap(({ path, text }) => [...internalFindings(path, text), ...hostFindings(path, text, hosts)]);
-	const contents = unpushedTexts(directory, tips).flatMap(({ path, text }) => boundaryFindings(path, `${path} (in a pushed commit)`, text, hosts));
+	const paths = changes.flatMap(({ commit, path }) => [...internalFindings(`commit ${commit} (file name)`, path), ...hostFindings(`commit ${commit} (file name)`, path, hosts)]);
+	const contents = changedTexts(directory, changes).flatMap(({ path, text }) => boundaryFindings(path, `${path} (in a pushed commit)`, text, hosts));
 	const findings = [...refs, ...messages, ...paths, ...contents];
 	return findings;
 }
@@ -113,7 +122,7 @@ function pushedRefs(input: string): Push {
 
 /** The message of each commit reachable from the tips that no remote holds yet. */
 function unpushedMessages(directory: string, tips: readonly string[]): readonly Text[] {
-	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '--format=%H%x1f%B%x00', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: LOG_BUFFER });
+	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '--format=%H%x1f%B%x00', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: GIT_BUFFER });
 	const messages = log
 		.split('\0')
 		.map((entry) => entry.replace(/^\n/u, '').split('\u001f'))
@@ -121,38 +130,41 @@ function unpushedMessages(directory: string, tips: readonly string[]): readonly 
 	return messages;
 }
 
-/** The file names each unpushed commit adds or changes, merges against each parent and a rename as its new name. */
-function unpushedPaths(directory: string, tips: readonly string[]): readonly Text[] {
-	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '-z', '-m', '--no-renames', '--diff-filter=d', '--name-only', '--format=%x1e%H', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: LOG_BUFFER });
-	const paths = log.split(RECORD).flatMap((record) => {
-		const [sha = '', ...names] = record.split('\0').map((name) => name.replace(/^\n/u, ''));
-		return names.filter((name) => name !== '').map((name) => ({ path: `commit ${sha} (file name)`, text: name }));
+/** Each file an unpushed commit adds or changes, with the blob it holds there: merges against each parent, a rename as its new name. */
+function unpushedChanges(directory: string, tips: readonly string[]): readonly Change[] {
+	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '-z', '-m', '--raw', '--no-abbrev', '--no-renames', '--diff-filter=d', '--format=%x1e%H', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: GIT_BUFFER });
+	const changes = log.split(RECORD).flatMap((record) => {
+		const commit = COMMIT.exec(record)?.groups?.['commit'] ?? '';
+		return [...record.matchAll(CHANGE)].flatMap(({ groups }) => (groups?.['sha'] === undefined || groups['path'] === undefined ? [] : [{ commit, mode: groups['mode'] ?? '', sha: groups['sha'], path: groups['path'] }]));
 	});
-	return paths;
+	return changes;
 }
 
-/** Every text file reachable from the tips that no remote holds yet: what a push uploads, whatever the working tree now shows. */
-function unpushedTexts(directory: string, tips: readonly string[]): readonly Text[] {
-	const listing = tips.length === 0 ? '' : execFileSync('git', ['rev-list', '--objects', '--filter=object:type=blob', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: LOG_BUFFER });
-	const blobs = listing.split('\n').flatMap((line) => {
-		const groups = OBJECT.exec(line)?.groups;
-		return groups?.['sha'] === undefined || groups['path'] === undefined ? [] : [{ sha: groups['sha'], path: groups['path'] }];
+/** The text of every changed blob under every path it was committed at, so an exempt path never hides the same content elsewhere. */
+function changedTexts(directory: string, changes: readonly Change[]): readonly Text[] {
+	const placed = new Map(changes.filter(({ mode }) => mode !== GITLINK).map(({ sha, path }) => [`${sha} ${path}`, { sha, path }] as const));
+	const shas = [...new Set([...placed.values()].map(({ sha }) => sha))];
+	const contents = shas.length === 0 ? new Map<string, string>() : blobTexts(directory, shas);
+	const texts = [...placed.values()].flatMap(({ sha, path }) => {
+		const text = contents.get(sha);
+		return text === undefined ? [] : [{ path, text }];
 	});
-	const texts = blobs.length === 0 ? [] : blobTexts(directory, blobs);
 	return texts;
 }
 
 /** Reads the blobs through one `git cat-file --batch`, skipping binary content. */
-function blobTexts(directory: string, blobs: readonly Entry[]): readonly Text[] {
-	const output = execFileSync('git', ['cat-file', '--batch'], { cwd: directory, input: blobs.map((blob) => `${blob.sha}\n`).join(''), maxBuffer: LOG_BUFFER });
-	const texts: Text[] = [];
+function blobTexts(directory: string, shas: readonly string[]): ReadonlyMap<string, string> {
+	const output = execFileSync('git', ['cat-file', '--batch'], { cwd: directory, input: shas.map((sha) => `${sha}\n`).join(''), maxBuffer: GIT_BUFFER });
+	const texts = new Map<string, string>();
 	let offset = 0;
-	for (const blob of blobs) {
+	for (const sha of shas) {
 		const end = output.indexOf(0x0a, offset);
 		const size = BATCH_HEADER.exec(output.toString('utf8', offset, end))?.groups?.['size'];
 		const content = size === undefined ? undefined : output.subarray(end + 1, end + 1 + Number(size));
 		offset = content === undefined ? end + 1 : end + 2 + content.length;
-		texts.push(...(content === undefined || content.includes(0) ? [] : [{ path: blob.path, text: content.toString('utf8') }]));
+		if (content !== undefined && !content.includes(0)) {
+			texts.set(sha, content.toString('utf8'));
+		}
 	}
 	return texts;
 }

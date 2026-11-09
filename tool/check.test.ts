@@ -1,11 +1,13 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { cpSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { check } from './check.ts';
 import { isolated, syntheticExport, unhook, workspace } from './fixture.ts';
+import { root } from './local.ts';
 
 const HOSTS = { '.guard.local.yaml': 'hosts: [vm.example.test]\n' };
+const LEFTHOOK = join(root, 'node_modules', '.bin', 'lefthook');
 const printed = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
 unhook();
@@ -70,6 +72,9 @@ test('the command line exits 1 on a finding and 0 without one', () => {
 	tree.remove();
 });
 
+type Run = (...argv: readonly string[]) => { readonly status: number | null; readonly output: string };
+type Clone = { readonly directory: string; readonly git: Run; readonly install: () => void; readonly remove: () => void };
+
 type Repository = { readonly directory: string; readonly git: (input: string, ...argv: readonly string[]) => string; readonly commit: (message: string, files: Readonly<Record<string, string>>, parent?: string) => string; readonly remove: () => void };
 
 /** A synthetic git repository in a temporary folder; commits are written with plumbing, so no hook runs. */
@@ -120,7 +125,8 @@ test.each([
 	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 0],
 	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1],
 	['refs/heads/ZZZ-RB-000 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 1],
-	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/vm.example.test 1111111111111111111111111111111111111111\n', 1]
+	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/vm.example.test 1111111111111111111111111111111111111111\n', 1],
+	['', 1]
 ])('pushed reads the local tips and ref names from the pre-push input %j', (input, status) => {
 	const synthetic = repository(HOSTS);
 	const script = `import { check } from ${JSON.stringify(join(import.meta.dirname, 'check.ts'))}\nprocess.exitCode = check(['pushed'], process.argv[1])\n`;
@@ -179,3 +185,70 @@ test('pushed skips content a remote already holds', () => {
 	synthetic.remove();
 	expect(code).toBe(0);
 });
+
+test('pushed checks a blob under every path it is committed at, so an exempt path never hides it', () => {
+	const synthetic = repository({});
+	const added = synthetic.commit('Add notes\n', { 'notes.md': 'ZZZ-RB-000\n' });
+	const blob = synthetic.git('ZZZ-RB-000\n', 'hash-object', '-w', '--stdin');
+	const tool = synthetic.git(`100644 blob ${blob}\tnotes.md\n`, 'mktree');
+	const tip = synthetic.git('Move the notes into the checker folder\n', 'commit-tree', synthetic.git(`040000 tree ${tool}\ttool\n`, 'mktree'), '-p', added);
+	const { code, output } = pushedOutput(synthetic, [tip]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain('notes.md (in a pushed commit):1: internal-id');
+});
+
+test.each([
+	['Synthetic page.\n', 0],
+	['See ZZZ-RB-000.\n', 1]
+])('the pre-push hook checks a branch pushed while another is checked out %j', (notes, status) => {
+	const clone = hookedClone();
+	clone.git('checkout', '--quiet', '-b', 'probe');
+	writeFileSync(join(clone.directory, 'notes.md'), notes);
+	clone.git('commit', '--quiet', '--all', '--message', 'Probe');
+	clone.git('checkout', '--quiet', 'main');
+	clone.install();
+	const { status: code, output } = clone.git('push', 'origin', 'refs/heads/probe:refs/heads/probe');
+	clone.remove();
+	expect([code, output.includes('internal-id')]).toEqual([status, status === 1]);
+});
+
+test('the pre-push hook checks a force push that only rewords a commit message', () => {
+	const clone = hookedClone();
+	clone.git('commit', '--quiet', '--amend', '--message', 'Start ZZZ-RB-000');
+	clone.install();
+	const { status, output } = clone.git('push', '--force-with-lease', 'origin', 'main');
+	clone.remove();
+	expect(status).toBe(1);
+	expect(output).toContain('internal-id');
+});
+
+/** A clone of a bare remote with this repository's hook configuration and checker and a pushed `main`; `install` installs the hooks, so the setup commits run none. */
+function hookedClone(): Clone {
+	const tree = workspace({ 'clone/notes.md': 'Synthetic.\n' });
+	const directory = join(tree.directory, 'clone');
+	for (const path of ['lefthook.yml', '.lefthook', 'tool', 'src']) {
+		cpSync(join(root, path), join(directory, path), { recursive: true });
+	}
+	symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'));
+	const git = runner(directory, 'git', '-c', 'user.name=Synthetic', '-c', 'user.email=ada@example.com');
+	git('init', '--quiet', '--bare', '../remote.git');
+	git('init', '--quiet', '--initial-branch=main');
+	git('remote', 'add', 'origin', '../remote.git');
+	git('add', 'lefthook.yml', '.lefthook', 'notes.md');
+	git('commit', '--quiet', '--message', 'Start');
+	git('push', '--quiet', '--set-upstream', 'origin', 'main');
+	const clone = { directory, git, install: (): void => { runner(directory, LEFTHOOK)('install'); }, remove: tree.remove };
+	return clone;
+}
+
+/** Runs a command with fixed leading arguments in a folder, free of the hooked repository's git variables and the user's git configuration, finding lefthook in this repository. */
+function runner(directory: string, command: string, ...leading: readonly string[]): Run {
+	const environment = { ...isolated(), GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', LEFTHOOK_BIN: LEFTHOOK };
+	const run: Run = (...argv) => {
+		const child = spawnSync(command, [...leading, ...argv], { cwd: directory, encoding: 'utf8', env: environment });
+		const outcome = { status: child.status, output: `${child.stdout}${child.stderr}` };
+		return outcome;
+	};
+	return run;
+}

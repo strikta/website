@@ -5,6 +5,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { check } from './check.ts';
 import { isolated, syntheticExport, unhook, workspace } from './fixture.ts';
 
+const HOSTS = { '.guard.local.yaml': 'hosts: [vm.example.test]\n' };
 const printed = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
 unhook();
@@ -108,3 +109,73 @@ function contents(directory: string): Readonly<Record<string, string>> {
 	const files = Object.fromEntries(paths.map((path) => [path, readFileSync(join(directory, path), 'latin1')] as const));
 	return files;
 }
+
+function pushedOutput(repository: Repository, tips: readonly string[]): { code: number; output: string } {
+	const code = check(['pushed', ...tips], repository.directory);
+	const output = printed.mock.calls.map(([chunk]) => String(chunk)).join('');
+	return { code, output };
+}
+
+test.each([
+	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 0],
+	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1],
+	['refs/heads/ZZZ-RB-000 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 1],
+	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/vm.example.test 1111111111111111111111111111111111111111\n', 1]
+])('pushed reads the local tips and ref names from the pre-push input %j', (input, status) => {
+	const synthetic = repository(HOSTS);
+	const script = `import { check } from ${JSON.stringify(join(import.meta.dirname, 'check.ts'))}\nprocess.exitCode = check(['pushed'], process.argv[1])\n`;
+	const child = spawnSync(process.execPath, ['--input-type=module', '--eval', script, synthetic.directory], { input, encoding: 'utf8', env: isolated() });
+	synthetic.remove();
+	expect(child.status).toBe(status);
+});
+
+test('pushed checks every commit message about to be pushed, merges included', () => {
+	const synthetic = repository(HOSTS);
+	const first = synthetic.commit('Start\n', {});
+	const merge = synthetic.commit('Merge from vm.example.test\n', {}, first);
+	const clean = pushedOutput(synthetic, [first]).code;
+	const { code, output } = pushedOutput(synthetic, [merge]);
+	synthetic.remove();
+	expect([clean, code]).toEqual([0, 1]);
+	expect(output).toContain(`commit ${merge}:1: local-host`);
+});
+
+test('pushed refuses an identifier that an unpushed commit adds and a later one removes, and skips binary content', () => {
+	const synthetic = repository({});
+	const added = synthetic.commit('Add notes\n', { 'notes.md': 'Intro\nSee ZZZ-RB-000.\n', 'mark.bin': 'ZZZ-RB-000\u0000' });
+	const removed = synthetic.commit('Trim notes\n', { 'notes.md': 'Intro\n' }, added);
+	const { code, output } = pushedOutput(synthetic, [removed]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain('notes.md (in a pushed commit):2: internal-id');
+	expect(output).not.toContain('mark.bin');
+});
+
+test('pushed applies the path exemptions of scan to pushed content', () => {
+	const synthetic = repository({});
+	const blob = (text: string): string => synthetic.git(text, 'hash-object', '-w', '--stdin');
+	const tool = synthetic.git(`100644 blob ${blob('const shape = "ZZZ-ADR-000";\n')}\trule.ts\n100644 blob ${blob('const address = "ada@mail.invalid";\n')}\trule.test.ts\n`, 'mktree');
+	const tip = synthetic.git('Add the checker\n', 'commit-tree', synthetic.git(`040000 tree ${tool}\ttool\n`, 'mktree'));
+	const { code } = pushedOutput(synthetic, [tip]);
+	synthetic.remove();
+	expect(code).toBe(0);
+});
+
+test('pushed refuses an identifier in a file name', () => {
+	const synthetic = repository({});
+	const named = synthetic.commit('Add notes\n', { 'ZZZ-RB-000.md': '' });
+	const { code, output } = pushedOutput(synthetic, [named]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain(`commit ${named} (file name):1: internal-id`);
+});
+
+test('pushed skips content a remote already holds', () => {
+	const synthetic = repository({});
+	const published = synthetic.commit('Add notes\n', { 'notes.md': 'ZZZ-RB-000\n' });
+	synthetic.git('', 'update-ref', 'refs/remotes/origin/main', published);
+	const next = synthetic.commit('Add a page\n', { 'notes.md': 'ZZZ-RB-000\n', 'page.md': 'Synthetic.\n' }, published);
+	const { code } = pushedOutput(synthetic, [next]);
+	synthetic.remove();
+	expect(code).toBe(0);
+});

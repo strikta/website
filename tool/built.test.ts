@@ -141,3 +141,44 @@ test('reads text the way a browser shows it', () => {
 test('separates blocks the way a browser lays them out, and keeps inline runs together', () => {
 	expect(visibleText(page('<p>Write to <a href="mailto:support@strikta.dev">support@strikta.dev</a></p><p>Copyright</p><ul><li>One</li><li>T<strong>wo</strong></li></ul>'))).toBe('Write to support@strikta.dev Copyright One Two');
 });
+
+const legalStage = `${stage}  - {path: /legal/trademarks, stages: [S1]}\n`;
+const legalFile = '# Synthetic marks\n\nZZZ Mark is a **synthetic** mark.\n\n## 1. Use\n\n- Name `ZZZ` only\n- Never alter it\n\n| Mark | Owner |\n|---|---|\n| ZZZ | Synthetic AB |\n';
+const legalPage = (body: string, header?: string): string => page(`<header><p>${header ?? 'Synthetic header'}</p></header><main id="main">${body}</main>`);
+const fullLegal = '<h1>Synthetic marks</h1><nav aria-label="Contents"><ol><li><a href="#section-1">1. Use</a></li></ol></nav><p>ZZZ Mark is a <strong>synthetic</strong> mark.</p><section><h2 id="section-1">1. Use</h2><ul><li>Name <code>ZZZ</code> only</li><li>Never alter it</li></ul><table><thead><tr><th>Mark</th><th>Owner</th></tr></thead><tbody><tr><td>ZZZ</td><td>Synthetic AB</td></tr></tbody></table></section>';
+
+function legalFixes(body: string, header?: string): readonly string[] {
+	const exported = syntheticExport({ 'legal/trademarks.md': legalFile }, quotes);
+	const found = fixes({ ...exported, 'data/stage.yaml': legalStage, 'dist/legal/trademarks/index.html': legalPage(body, header) });
+	return found;
+}
+
+test('a legal page that shows its whole exported text in order passes', () => {
+	expect(legalFixes(fullLegal)).toEqual([]);
+});
+
+test('flags a legal page that drops a clause', () => {
+	expect(legalFixes(fullLegal.replace('<li>Never alter it</li>', ''))).toEqual(['legal-text: "Never alter it" of legal/trademarks.md is missing or out of order: render it with <Legal>; never retype it']);
+});
+
+test('flags a legal page that reorders clauses', () => {
+	expect(legalFixes(fullLegal.replace('<li>Name <code>ZZZ</code> only</li><li>Never alter it</li>', '<li>Never alter it</li><li>Name <code>ZZZ</code> only</li>'))).toEqual([
+		'legal-text: "Never alter it" of legal/trademarks.md is missing or out of order: render it with <Legal>; never retype it'
+	]);
+});
+
+test('a heading only in the contents list does not count as shown', () => {
+	expect(legalFixes(fullLegal.replace('<h2 id="section-1">1. Use</h2>', ''))).toEqual(['legal-text: "1. Use" of legal/trademarks.md is missing or out of order: render it with <Legal>; never retype it']);
+});
+
+test('text outside <main> does not count as shown', () => {
+	expect(legalFixes(fullLegal.replace('<li>Never alter it</li>', ''), 'Never alter it')).toEqual([
+		'legal-text: "Never alter it" of legal/trademarks.md is missing or out of order: render it with <Legal>; never retype it'
+	]);
+});
+
+test('flags a legal page whose text is not in the export', () => {
+	expect(fixes({ 'data/stage.yaml': legalStage, 'dist/legal/trademarks/index.html': legalPage(fullLegal) })).toEqual([
+		'legal-text: no exported file "legal/trademarks.md": a new export is needed'
+	]);
+});

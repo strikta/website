@@ -10,8 +10,8 @@ export type LegalText = { readonly title: string; readonly preamble: readonly Bl
 
 const INLINE = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
 const ITEM = /^- (?<item>.*)$/u;
-const ROW = /^\|(?<cells>.*)\|$/u;
-const RULE = /^\|(?:\s*:?-+:?\s*\|)+$/u;
+export const TABLE_ROW = /^\|(?<cells>.*)\|$/u;
+export const TABLE_RULE = /^\|(?:\s*:?-+:?\s*\|)+$/u;
 const TITLE = /^# (?<title>.*)$/u;
 
 /**
@@ -36,12 +36,12 @@ function blocks(lines: readonly string[]): readonly Block[] {
 	const grouped: Block[] = [];
 	for (const line of kept) {
 		const item = ITEM.exec(line)?.groups?.['item'];
-		const cells = ROW.exec(line)?.groups?.['cells'];
+		const cells = TABLE_ROW.exec(line)?.groups?.['cells'];
 		const last = grouped[grouped.length - 1];
 		if (item !== undefined) {
 			appendItem(grouped, last, spans(item));
 		} else if (cells !== undefined) {
-			appendRow(grouped, last, RULE.test(line) ? undefined : cells.split('|').map((cell) => spans(cell.trim())));
+			appendRow(grouped, last, TABLE_RULE.test(line) ? undefined : cells.split('|').map((cell) => spans(cell.trim())));
 		} else {
 			grouped.push({ kind: 'paragraph', line: spans(line) });
 		}

@@ -71,11 +71,15 @@ export function exportedText(path: string): string {
 	if (exported?.files.some((file) => file.path === path) !== true) {
 		throw new Error(`No exported file "${path}": a new export is needed.`);
 	}
-	const fills = exported.quotes
-		.filter((entry) => 'file' in entry.source && entry.source.file === path)
-		.flatMap((entry) => Object.entries(entry.fills));
-	const text = fills.reduce((content, [placeholder, name]) => content.replaceAll(placeholder, slot(slots, name)), readFileSync(join(exportDirectory, path), 'utf8'));
+	const text = filledFile(exported, path, readFileSync(join(exportDirectory, path), 'utf8'), slots);
 	return text;
+}
+
+/** An exported file's content with every placeholder its quotes map to a slot filled in. */
+export function filledFile(index: Export, path: string, content: string, filling: Slots): string {
+	const fills = index.quotes.filter((entry) => 'file' in entry.source && entry.source.file === path).flatMap((entry) => Object.entries(entry.fills));
+	const filled = fills.reduce((text, [placeholder, name]) => text.replaceAll(placeholder, slot(filling, name)), content);
+	return filled;
 }
 
 /** The version an exported file's title states, if any. */

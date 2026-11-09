@@ -1,9 +1,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import { filledText, loadExport } from '../src/quote.ts';
+import { legal, security, type LegalPage } from '../src/navigation.ts';
+import { filledFile, filledText, loadExport, type Export } from '../src/quote.ts';
 import { loadSlots, optionalSlot, type Slots } from '../src/slot.ts';
 import { covers, loadStage, priced, stageRoutes, withheld, type Stage } from '../src/stage.ts';
 import { lineAt, type Finding } from './finding.ts';
+import { TABLE_ROW, TABLE_RULE } from './legal.ts';
 import { emailFindings, hostFindings, internalFindings } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
@@ -34,6 +36,12 @@ const NO_STAGE: Stage = { current: 'none (data/stage.yaml is missing)', routes: 
 const HOME_BUDGET = 120 * 1024;
 const SCRIPT_BUDGET = 1024;
 const LOCAL_ASSET = /^\/(?!\/)[^?#]*\.(?:css|m?js|woff2)$/u;
+const LEGAL_PAGES: readonly LegalPage[] = [...legal, security];
+const MAIN = /<main\b(?:[^>"']|"[^"]*"|'[^']*')*>(?<main>[\s\S]*)<\/main\s*>/iu;
+const NAV = /<nav\b[\s\S]*?<\/nav\s*>/giu;
+const HEADING_MARK = /^(?:#{1,2}|-) /u;
+const EMPHASIS = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
+const EXCERPT_LENGTH = 60;
 
 /** `dist/`: no placeholder, price word, early price figure, third-party request, internal ID, host, stray page, missing quote or over-budget page. */
 export function builtFindings(dist: string, root: string, hosts: readonly string[]): readonly Finding[] {
@@ -51,7 +59,7 @@ export function builtFindings(dist: string, root: string, hosts: readonly string
 	]);
 	const styleFindings = built.styles.flatMap((style) => thirdPartyFindings(style, slots));
 	const scriptFindings = built.scripts.flatMap(absoluteFindings);
-	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots, stage), ...stageFindings(built, stage), ...budgetFindings(dist, built)];
+	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots, stage), ...legalFindings(built, root, slots), ...stageFindings(built, stage), ...budgetFindings(dist, built)];
 	return findings;
 }
 
@@ -134,6 +142,66 @@ function quoteFindings(built: Built, root: string, slots: Slots, stage: Stage): 
 		return absent;
 	});
 	return findings;
+}
+
+/** Each built legal page shows every line of its exported text in its <main>, outside the contents list, in the file's order. */
+function legalFindings(built: Built, root: string, slots: Slots): readonly Finding[] {
+	const directory = join(root, 'content', 'export');
+	const index = loadExport(directory);
+	const findings = built.pages.flatMap((page) => {
+		const entry = LEGAL_PAGES.find((candidate) => candidate.route === page.route);
+		const found = entry === undefined ? [] : legalPageFindings(page, entry.file, directory, index, slots);
+		return found;
+	});
+	return findings;
+}
+
+function legalPageFindings(page: Page, file: string, directory: string, index: Export | undefined, slots: Slots): readonly Finding[] {
+	if (index?.files.some((exported) => exported.path === file) !== true) {
+		const absent = [pageFinding(page, '', 'legal-text', `no exported file "${file}": a new export is needed`, 'Three kinds of text')];
+		return absent;
+	}
+	const lines = exportedLines(filledFile(index, file, readFileSync(join(directory, file), 'utf8'), slots));
+	const findings = unmatched(mainText(page.html), lines).map((line) =>
+		pageFinding(page, '', 'legal-text', `"${line.slice(0, EXCERPT_LENGTH)}" of ${file} is missing or out of order: render it with <Legal>; never retype it`, 'Three kinds of text')
+	);
+	return findings;
+}
+
+/** The text of each non-empty line of an exported legal text as a page shows it: heading and item marks, table pipes and emphasis marks removed. */
+function exportedLines(content: string): readonly string[] {
+	const lines = content
+		.split('\n')
+		.filter((line) => line.trim() !== '' && !TABLE_RULE.test(line))
+		.map((line) => {
+			const cells = TABLE_ROW.exec(line)?.groups?.['cells'];
+			const marked = cells === undefined ? line.replace(HEADING_MARK, '') : cells.split('|').map((cell) => cell.trim()).join(' ');
+			const plain = collapse(marked.replace(EMPHASIS, (whole: string, strong?: string, code?: string) => strong ?? code ?? whole));
+			return plain;
+		});
+	return lines;
+}
+
+/** The visible text of a page's <main> without its navigation, such as a contents list. */
+function mainText(html: string): string {
+	const main = MAIN.exec(html)?.groups?.['main'] ?? '';
+	const text = visibleText(main.replace(NAV, ''));
+	return text;
+}
+
+/** The lines a text does not hold in order, each searched for after the end of the last one found. */
+function unmatched(text: string, lines: readonly string[]): readonly string[] {
+	const missing: string[] = [];
+	let position = 0;
+	for (const line of lines) {
+		const found = text.indexOf(line, position);
+		if (found < 0) {
+			missing.push(line);
+		} else {
+			position = found + line.length;
+		}
+	}
+	return missing;
 }
 
 function stageFindings(built: Built, table: Stage): readonly Finding[] {

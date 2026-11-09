@@ -1,7 +1,8 @@
 ---
 import Legal from '../components/Legal.astro';
 import Page from '../layouts/Page.astro';
+import { security } from '../navigation.ts';
 ---
-<Page title="Security" description="How to report a security vulnerability in Strikta Pro, privately, to security@strikta.dev.">
-	<Legal file="legal/security.md" draft={false} />
+<Page title={security.label} description="How to report a security vulnerability in Strikta Pro, privately, to security@strikta.dev.">
+	<Legal file={security.file} draft={security.draft} />
 </Page>

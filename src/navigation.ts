@@ -39,9 +39,12 @@ export const product: readonly Link[] = [
 	{ route: '/docs', label: 'Docs' }
 ];
 
+/** The security policy, an exported legal text on its own page. */
+export const security: LegalPage = { route: '/security', label: 'Security', file: 'legal/security.md', draft: false };
+
 export const help: readonly Link[] = [
 	{ route: '/support', label: 'Support' },
-	{ route: '/security', label: 'Security' },
+	security,
 	{ route: '/company', label: 'Company and contact' }
 ];
 

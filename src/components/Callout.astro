@@ -1,0 +1,20 @@
+---
+type Props = { label?: string };
+const { label } = Astro.props;
+---
+<aside class="callout" aria-label={label}>
+	<slot />
+</aside>
+<style>
+	.callout {
+		margin-block: var(--space-6);
+		padding: var(--space-4) var(--space-5);
+		border: 1px solid var(--border);
+		border-inline-start: 4px solid var(--accent);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+	}
+	.callout :global(p) {
+		margin: 0;
+	}
+</style>

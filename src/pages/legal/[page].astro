@@ -1,0 +1,18 @@
+---
+import Legal from '../../components/Legal.astro';
+import Page from '../../layouts/Page.astro';
+import { legal, stagedLinks, type LegalPage } from '../../navigation.ts';
+
+type Props = { entry: LegalPage };
+
+/** One page for each legal text the current stage builds. */
+export function getStaticPaths(): readonly { params: { page: string }; props: Props }[] {
+	const paths = stagedLinks(legal).map((entry) => ({ params: { page: entry.route.replace('/legal/', '') }, props: { entry } }));
+	return paths;
+}
+
+const { entry } = Astro.props;
+---
+<Page title={entry.label} description={`${entry.label} of Strikta and Strikta Pro.`}>
+	<Legal file={entry.file} draft={entry.draft} />
+</Page>

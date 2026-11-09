@@ -1,0 +1,25 @@
+---
+type Props = { title: string };
+const { title } = Astro.props;
+---
+<article class="card">
+	<h3>{title}</h3>
+	<slot />
+</article>
+<style>
+	.card {
+		grid-column: span 4;
+		padding: var(--space-5);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+	}
+	.card h3 {
+		margin-block: 0 var(--space-3);
+		font-size: var(--lg-size);
+		line-height: var(--lg-line);
+	}
+	.card :global(p) {
+		margin: 0;
+	}
+</style>

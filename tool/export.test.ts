@@ -44,3 +44,10 @@ test('no export yet means nothing to check', () => {
 	expect(exportFindings(join(tree.directory, 'content/export'), 'content/export')).toEqual([]);
 	tree.remove();
 });
+
+test('a file quote that is not verbatim in its file fails', () => {
+	const tree = workspace(syntheticExport(legal, [{ id: 'synthetic-clause', text: '1.1 Synthetic clause.', pages: ['/'], source: { file: 'legal/terms.md' } }, { id: 'synthetic-other', text: '1.2 Missing clause.', pages: ['/'], source: { file: 'legal/terms.md' } }]));
+	const found = exportFindings(join(tree.directory, 'content/export'), 'content/export').map((finding) => finding.fix);
+	tree.remove();
+	expect(found).toEqual(['quote "synthetic-other" is not verbatim in its source file: regenerate the export in the private repository']);
+});

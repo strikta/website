@@ -1,0 +1,36 @@
+# The current release stage and the routes and sections it builds. Later stages are added when they start.
+current: s1
+routes:
+  - {path: /, stages: [s1]}
+  - {path: /how-it-works, stages: [s1]}
+  - {path: /pro, stages: [s1]}
+  - {path: /company-licence, stages: [s1]}
+  - {path: /support, stages: [s1]}
+  - {path: /security, stages: [s1]}
+  - {path: /company, stages: [s1]}
+  - {path: /legal, stages: [s1]}
+  # Built once an export fills the placeholders in its text.
+  - {path: /legal/licence-terms, stages: []}
+  # Built once an export fills the placeholders in its text.
+  - {path: /legal/privacy, stages: []}
+  - {path: /legal/refund-policy, stages: [s1]}
+  - {path: /legal/trademarks, stages: [s1]}
+  - {path: /legal/company-licence, stages: [s1]}
+  - {path: /.well-known/security.txt, stages: [s1]}
+  - {path: /404, stages: [s1]}
+# Stages that publish price figures; none does before S3.
+priced: []
+# Exported quotes a stage holds back on one page; the built check does not look for them there.
+withheld:
+  # The price card on /pro.
+  - route: /pro
+    stages: [s1]
+    quotes: [yearly-price, founding-price, refund-promise]
+  # The licence terms on /pro.
+  - route: /pro
+    stages: [s1]
+    quotes: [licence-terms-2, licence-terms-7.1, licence-terms-7.2, licence-terms-7.3, licence-terms-7.4, licence-terms-7.5, licence-terms-7.6, licence-terms-8, licence-terms-10.1, licence-terms-10.2, licence-terms-11, licence-check]
+  # The price line on /company-licence.
+  - route: /company-licence
+    stages: [s1]
+    quotes: [company-licence-price]

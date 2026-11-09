@@ -50,6 +50,8 @@ export default defineConfig(
 			'@typescript-eslint/prefer-destructuring': ['error', { array: true, object: true }]
 		}
 	},
+	// Astro types every template element as `any`, so a `.map` that returns markup is never an unsafe return.
+	{ files: ['**/*.astro'], rules: { '@typescript-eslint/no-unsafe-return': 'off' } },
 	{ files: ['tool/**'], rules: { 'no-restricted-syntax': ['error', ...structure] } },
 	{ files: ['**/*.js'], rules: { '@typescript-eslint/explicit-function-return-type': 'off', '@typescript-eslint/explicit-module-boundary-types': 'off' } }
 );

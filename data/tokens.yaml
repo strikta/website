@@ -1,0 +1,17 @@
+# The design tokens of the Strikta brand: the only source of colours, type, spacing and grid.
+color:
+  light: {bg: "#FFFFFF", surface: "#F6F8FA", ink: "#0F172A", muted: "#475569", accent: "#0F766E", on_accent: "#FFFFFF", border: "#D0D7DE", input_border: "#64748B", error: "#B91C1C", focus: "#0F766E"}
+  dark:  {bg: "#0B0F14", surface: "#121820", ink: "#E6EDF3", muted: "#94A3B8", accent: "#2DD4BF", on_accent: "#0B0F14", border: "#26303B", input_border: "#7D8590", error: "#F87171", focus: "#2DD4BF"}
+contrast_tested:
+  light: {ink_bg: 17.85, muted_bg: 7.58, accent_bg: 5.47, input_border_bg: 4.76, error_bg: 6.47}
+  dark:  {ink_bg: 16.26, muted_bg: 7.49, accent_bg: 10.32, input_border_bg: 5.15, error_bg: 6.95}
+mode: system
+font:
+  sans: {family: "IBM Plex Sans", weights: [400, 600], licence: "SIL OFL 1.1", serve: "self-hosted WOFF2"}
+  mono: {family: "IBM Plex Mono", weights: [400, 600], licence: "SIL OFL 1.1", serve: "self-hosted WOFF2"}
+type_px: {xs: [13, 20], sm: [15, 24], base: [17, 28], lg: [21, 30], h3: [26, 34], h2: [33, 40], h1: [41, 48], hero: [51, 56], mobile_hero: [33, 40]}
+space_px: [0, 4, 8, 12, 16, 24, 32, 48, 64, 96]
+radius_px: {sm: 4, md: 8, lg: 12}
+grid: {sm: {cols: 4, gutter: 16}, md: {min: 640, cols: 8, gutter: 20}, lg: {min: 1024, cols: 12, gutter: 24, max: 1200}}
+target_px: 44
+motion: none

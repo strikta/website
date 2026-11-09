@@ -48,13 +48,22 @@ test.each([
 });
 
 test.each([
-	'<p>€99 a year.</p><p>Save your work often.</p>',
 	'<a href="https://github.com/strikta/strikta">Source</a> <a href="https://example.com">Example</a>',
 	'<p>Write to support@strikta.dev</p>',
 	'<script>const slots = "{launch.date}";</script><p>Fine.</p>',
 	'<img src="/font/mark.svg" alt="Strikta"> <img src="https://strikta.dev/mark.svg" alt="">'
 ])('passes the home page body %j', (body) => {
 	expect(fixes({ 'dist/index.html': page(body) })).toEqual([]);
+});
+
+test('flags a price figure on a stage that publishes none, but not one in a link target', () => {
+	expect(fixes({ 'dist/index.html': page('<p>From &euro;1,500 a year.</p>') })).toEqual(['price-figure: "€1,500": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(fixes({ 'dist/index.html': page('<p>Revenue under 2 EUR.</p>') })).toEqual(['price-figure: "2 EUR": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(fixes({ 'dist/index.html': page('<a href="mailto:licensing@strikta.dev?body=under%20%E2%82%AC1M">Email</a>') })).toEqual([]);
+});
+
+test('a stage that publishes prices may show a price figure', () => {
+	expect(fixes({ 'data/stage.yaml': `${stage}priced: [S1]\n`, 'dist/index.html': page('<p>€99 a year.</p><p>Save your work often.</p>') })).toEqual([]);
 });
 
 test('flags a third-party import in a stylesheet', () => {
@@ -74,6 +83,31 @@ test('passes a script that only calls its own origin', () => {
 test('flags a quote that is not on its page', () => {
 	expect(fixes({ 'dist/legal/index.html': page('<p>Starts soon.</p>') })).toEqual([
 		'quote-presence: quote "synthetic-start" is missing: render it with <Quote>; never retype it'
+	]);
+});
+
+test('a quote the stage holds back on a page is not looked for there', () => {
+	const held = `${stage}withheld:\n  - {route: /legal, stages: [S1], quotes: [synthetic-start]}\n`;
+	expect(fixes({ 'data/stage.yaml': held, 'dist/legal/index.html': page('<p>Starts soon.</p>') })).toEqual([]);
+});
+
+test('a quote held back on one page is still looked for on its other pages', () => {
+	const twice = syntheticExport({}, quotes.map((quote) => ({ ...quote, pages: ['/', '/legal'] })));
+	const held = `${stage}withheld:\n  - {route: /legal, stages: [S1], quotes: [synthetic-start]}\n`;
+	expect(fixes({ ...twice, 'data/stage.yaml': held, 'dist/legal/index.html': page('<p>Starts soon.</p>') })).toEqual([
+		'quote-presence: quote "synthetic-start" is missing: render it with <Quote>; never retype it'
+	]);
+});
+
+test('a quote on a page the stage does not build needs no slot', () => {
+	const elsewhere = syntheticExport({}, [{ id: 'synthetic-start', text: 'Starts on [start date].', pages: ['/elsewhere'], fills: { '[start date]': 'launch.date' } }]);
+	expect(fixes({ ...elsewhere, 'data/offer.yaml': '' })).toEqual([]);
+});
+
+test('flags a home page over its byte budget and scripts over theirs', () => {
+	expect(fixes({ 'dist/_astro/site.css': `body{}/*${'x'.repeat(130 * 1024)}*/`, 'dist/_astro/copy.js': `const copy = "${'y'.repeat(1100)}";` })).toEqual([
+		'budget: home page loads 133297 bytes, over the 122880 budget',
+		'budget: 1116 bytes of JavaScript, over the 1024 budget'
 	]);
 });
 
@@ -102,4 +136,8 @@ test('flags a local host anywhere in the page', () => {
 
 test('reads text the way a browser shows it', () => {
 	expect(visibleText(page('<p>Mightreya&nbsp;AB &middot; <em>org.</em>\n no.&#160;1&#x2009;2</p><!-- hidden --><style>p{}</style>'))).toBe('Mightreya AB · org. no. 1 2');
+});
+
+test('separates blocks the way a browser lays them out, and keeps inline runs together', () => {
+	expect(visibleText(page('<p>Write to <a href="mailto:support@strikta.dev">support@strikta.dev</a></p><p>Copyright</p><ul><li>One</li><li>T<strong>wo</strong></li></ul>'))).toBe('Write to support@strikta.dev Copyright One Two');
 });

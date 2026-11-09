@@ -1,0 +1,13 @@
+---
+// The interim launch mark, "the rebuilt window". Below 24 px every bar is solid white; it is never shown under 16 px.
+type Props = { size: number; decorative?: boolean };
+const { size, decorative } = Astro.props;
+const hidden = decorative === true;
+const small = size < 24;
+---
+<svg viewBox="0 0 32 32" width={size} height={size} role={hidden ? undefined : 'img'} aria-label={hidden ? undefined : 'Strikta'} aria-hidden={hidden ? 'true' : undefined}>
+	<rect x="1" y="1" width="30" height="30" rx="7" fill="#0F766E" />
+	<rect x="8" y="8" width="16" height="4" rx="2" fill="#FFFFFF" />
+	<rect x="8" y="14" width="10" height="4" rx="2" fill="#FFFFFF" fill-opacity={small ? '1' : '0.85'} />
+	<rect x="8" y="20" width="13" height="4" rx="2" fill="#FFFFFF" fill-opacity={small ? '1' : '0.7'} />
+</svg>

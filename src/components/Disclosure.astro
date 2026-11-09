@@ -1,0 +1,20 @@
+---
+import { slot, slots } from '../slot.ts';
+const name = slot(slots, 'company.name');
+const organisation = slot(slots, 'company.org_no');
+const vat = slot(slots, 'company.vat_no');
+const office = `${slot(slots, 'company.seat')}, ${slot(slots, 'company.country')}`;
+const address = slot(slots, 'company.postal_address');
+const support = slot(slots, 'company.email.support');
+---
+<p class="disclosure">
+	{name} · org. no. {organisation} · VAT no. {vat} · registered office {office} · {address} · <a href={`mailto:${support}`}>{support}</a>
+</p>
+<style>
+	.disclosure {
+		margin: 0;
+		color: var(--muted);
+		font-size: var(--sm-size);
+		line-height: var(--sm-line);
+	}
+</style>

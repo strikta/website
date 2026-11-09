@@ -1,0 +1,75 @@
+---
+import { exportedText, exportedVersion } from '../quote.ts';
+import { legalText } from '../../tool/legal.ts';
+import Block from './Block.astro';
+import Callout from './Callout.astro';
+type Props = { file: string; draft: boolean };
+const { file, draft } = Astro.props;
+const { title, preamble, sections } = legalText(exportedText(file));
+const version = exportedVersion(file);
+const parts = sections.map((section, index) => ({ ...section, anchor: `section-${String(index + 1)}` }));
+---
+<article class="legal">
+	<h1>{title}</h1>
+	{draft && <Callout label="Status"><p><strong>Draft, not in force:</strong> Strikta Pro is not on sale.</p></Callout>}
+	{!draft && version !== undefined && <p class="version">Version {version}</p>}
+	{parts.length > 1 && (
+		<nav class="toc" aria-label="Contents">
+			<h2>Contents</h2>
+			<ol>{parts.map((part) => <li><a href={`#${part.anchor}`}>{part.heading}</a></li>)}</ol>
+		</nav>
+	)}
+	{preamble.map((block) => <Block block={block} />)}
+	{parts.map((part) => (
+		<section aria-labelledby={part.anchor}>
+			<h2 id={part.anchor}>{part.heading}</h2>
+			{part.blocks.map((block) => <Block block={block} />)}
+		</section>
+	))}
+</article>
+<style>
+	.legal {
+		max-inline-size: 75ch;
+	}
+	.version {
+		color: var(--muted);
+	}
+	.toc {
+		margin-block: var(--space-6);
+		padding: var(--space-4) var(--space-5);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+	}
+	.toc h2 {
+		margin-block: 0 var(--space-2);
+		font-size: var(--base-size);
+		line-height: var(--base-line);
+	}
+	.toc ol {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.toc a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--target);
+	}
+	.legal :global(table) {
+		border-collapse: collapse;
+		font-size: var(--sm-size);
+		line-height: var(--sm-line);
+	}
+	.legal :global(th),
+	.legal :global(td) {
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--border);
+		text-align: start;
+		vertical-align: top;
+	}
+	@media print {
+		.toc {
+			display: none;
+		}
+	}
+</style>

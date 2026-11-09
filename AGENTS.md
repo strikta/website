@@ -37,7 +37,7 @@ The no-English-keyword rule of the engine governs how Strikta processes users' m
 - `npm run dev` (Astro backgrounds itself for agents; `npx astro dev stop` when done), `npm run build`, `npm run preview`.
 - `npm run lint`, `npm run check`, `npm run test:unit`, `npm run test:built`, `npm run knip`.
 - Everything a PR needs: `npm run gate`. Run it before offering a PR; reproduce a CI failure locally before pushing again.
-- Playwright (`test:e2e`) and Lighthouse CI (`test:perf`) arrive with the first pages, the export import with the first export, the docs fetch with S2.
+- `npm run test:e2e`: Playwright with axe on every staged page (`npx playwright install --only-shell chromium` once). `npm run import-export -- <dir>`: the founder's import of a new export. Lighthouse CI (`test:perf`) and the docs fetch arrive with S2.
 
 ## Code standards (TypeScript and .astro)
 Lint and type checks enforce most of these; a lint failure is a standards failure. These rules win over any general Python or underscore rule loaded from elsewhere. TypeScript stays on major 6 until the lint and Astro tooling support 7.

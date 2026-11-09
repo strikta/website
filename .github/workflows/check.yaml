@@ -42,4 +42,5 @@ jobs:
             git log -1 --format=%B "$commit" > "$RUNNER_TEMP/message"
             node tool/check.ts message "$RUNNER_TEMP/message" || exit 1
           done
+      - run: npx playwright install --with-deps --only-shell chromium
       - run: npm run gate

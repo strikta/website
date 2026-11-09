@@ -1,0 +1,88 @@
+---
+import Button from '../components/Button.astro';
+import Card from '../components/Card.astro';
+import Quote from '../components/Quote.astro';
+import Page from '../layouts/Page.astro';
+import { enquiry } from '../navigation.ts';
+const egress = [
+	{ stays: 'The memory store, the audit log, the configuration', sent: 'Every stored turn\'s text, to the generation provider you configure (Gemini by default), for extraction and consolidation' },
+	{ stays: 'Embeddings of your messages (local multilingual E5 model)', sent: 'The current message, for some model calls such as temporal query decomposition' },
+	{ stays: 'No telemetry: Strikta and Strikta Pro upload nothing to us', sent: 'Pro alert notices, only if you turn them on, to the destination you choose; never memory content' }
+];
+---
+<Page description="Strikta is an open-source context engine for LLM agents, with Strikta Pro, a Console for what your agent sees.">
+	<section class="intro" aria-labelledby="name">
+		<h1 id="name">Strikta</h1>
+		<p class="lead prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
+		<div class="actions">
+			<Button href="/how-it-works">How it works</Button>
+			<Button href="/pro" quiet>Strikta Pro</Button>
+		</div>
+	</section>
+
+	<section aria-labelledby="inspect">
+		<h2 id="inspect">Inspect it, replay it, keep it on your machine</h2>
+		<div class="grid">
+			<Card title="Every turn has a record">
+				<p>By default, each assembly writes an audit record: every memory the turn considered, served or not, its score terms and the stage that dropped it, plus timings. In the default mode the record holds hashes and counts, not your text. Records stay on your machine.</p>
+			</Card>
+			<Card title="Replay a turn">
+				<p>Replay assembles a past turn again, optionally as of an earlier time or with changed settings, as a dry run: nothing is stored. A turn recorded in metadata-only mode cannot be replayed.</p>
+			</Card>
+			<Card title="Corrections close, they don't delete">
+				<p>When a fact stops being true, Strikta closes it with an end date instead of deleting it, so you can see what the agent believed and when. Deliberate erasure exists too; it is not immediate: superseded versions are kept until maintenance removes them.</p>
+			</Card>
+		</div>
+	</section>
+
+	<section aria-labelledby="egress">
+		<h2 id="egress">What leaves your machine</h2>
+		<table class="compare">
+			<thead><tr><th scope="col">Stays on your machine</th><th scope="col">Is sent out</th></tr></thead>
+			<tbody>
+				{egress.map((row) => <tr><td data-label="Stays on your machine">{row.stays}</td><td data-label="Is sent out">{row.sent}</td></tr>)}
+			</tbody>
+		</table>
+		<p class="prose note">To keep all processing on your machine, point Strikta at a local OpenAI-compatible server (Ollama, vLLM or llama.cpp) for generation, and leave reranking off. Reranking is off in the production presets.</p>
+	</section>
+
+	<section aria-labelledby="runtimes">
+		<h2 id="runtimes">Works with your agent</h2>
+		<div class="grid">
+			<Card title="Hermes Agent"><p>Context engine and memory provider in one plugin. Hermes 0.22.5 and later 0.22 releases.</p></Card>
+			<Card title="OpenClaw"><p>A context engine plugin with no summariser. OpenClaw 2026.9.33 and 2026.10.7, Node.js 24 or newer.</p></Card>
+			<Card title="Claude Code and Codex"><p>Hooks recall memory before each prompt and capture after each answer; an MCP server gives the same memory to any MCP client.</p></Card>
+		</div>
+		<p class="muted note">Quickstart published with the first release.</p>
+	</section>
+
+	<section class="band" aria-labelledby="pro">
+		<h2 id="pro">Strikta Pro: the Console for what your agent sees</h2>
+		<p class="prose">A local web app beside your own engine: the exact window of every turn with the source of each sentence, every candidate with its score terms and rejection reason, corrections with a preview and undo, health and alerts. It runs on your machine and sends nothing to us.</p>
+		<p><strong>On sale from the public launch.</strong></p>
+		<Button href="/pro" quiet>About Strikta Pro</Button>
+	</section>
+
+	<section aria-labelledby="licence">
+		<h2 id="licence">Company licence</h2>
+		<p><Quote id="company-licence-offer" /> <a href={enquiry}>licensing@strikta.dev</a> · <a href="/company-licence">How the company licence works</a></p>
+	</section>
+</Page>
+<style>
+	.intro {
+		padding-block: var(--space-6) 0;
+	}
+	.note {
+		margin-block-start: var(--space-5);
+	}
+	.band {
+		margin-block-start: var(--space-8);
+		padding: var(--space-6);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		border: 1px solid var(--border);
+	}
+	.band h2 {
+		margin-block-start: 0;
+	}
+</style>

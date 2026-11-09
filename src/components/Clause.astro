@@ -1,0 +1,6 @@
+---
+import type { Line } from '../../tool/legal.ts';
+type Props = { line: Line };
+const { line } = Astro.props;
+---
+{line.map((run) => (run.kind === 'strong' ? <strong>{run.text}</strong> : run.kind === 'code' ? <code>{run.text}</code> : run.text))}

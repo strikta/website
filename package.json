@@ -13,8 +13,10 @@
 		"lint": "eslint . --max-warnings 0",
 		"test:unit": "vitest run",
 		"test:built": "node tool/check.ts built dist",
+		"test:e2e": "playwright test",
 		"knip": "knip --config knip.yaml",
-		"gate": "npm run lint && npm run check && npm run test:unit && npm run knip && npm run build && npm run test:built"
+		"import-export": "node tool/import.ts",
+		"gate": "npm run lint && npm run check && npm run test:unit && npm run knip && npm run build && npm run test:built && npm run test:e2e"
 	},
 	"dependencies": {
 		"astro": "7.4.7",
@@ -23,7 +25,9 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "0.9.12",
+		"@axe-core/playwright": "4.14.0",
 		"@eslint/js": "10.0.1",
+		"@playwright/test": "1.65.0",
 		"@types/node": "24.19.2",
 		"eslint": "10.14.0",
 		"eslint-plugin-astro": "3.2.1",

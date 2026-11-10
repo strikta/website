@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4321;
 
-// Journeys run against the built site in `dist/`, served in the foreground by Astro's preview server on this machine only.
+// Journeys run against the built site in `dist/`, served on this machine only with the live server's Content-Security-Policy.
 export default defineConfig({
 	testDir: 'e2e',
 	testMatch: '**/*.e2e.ts',
@@ -17,7 +17,7 @@ export default defineConfig({
 		{ name: 'dark', use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } }
 	],
 	webServer: {
-		command: `npm run preview -- --ignore-lock --host 127.0.0.1 --port ${String(PORT)}`,
+		command: `node tool/serve.ts ${String(PORT)}`,
 		url: `http://127.0.0.1:${String(PORT)}/`,
 		reuseExistingServer: false
 	}

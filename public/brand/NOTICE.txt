@@ -1,5 +1,3 @@
-Strikta and the Strikta logo are trademarks of Mightreya AB.
+Strikta trademark policy: https://strikta.dev/legal/trademarks
 
-The logo files in this folder are not covered by the licence of any Strikta
-code, or of the code of this website. Using them is governed by the Strikta
-trademark policy: https://strikta.dev/legal/trademarks
+"Strikta" and the Strikta logo are trademarks of Mightreya AB (no registration yet). This policy is separate from the software licences.

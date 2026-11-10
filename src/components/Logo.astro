@@ -6,6 +6,7 @@ const { viewBox, shapes } = artwork(process.cwd(), art);
 ---
 <svg class:list={['logo', className]} viewBox={viewBox} aria-hidden="true" focusable="false">
 	{shapes.map((shape) => <path d={shape} />)}
+	<slot />
 </svg>
 <style>
 	.logo {

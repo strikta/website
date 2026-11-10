@@ -25,7 +25,7 @@ const company = slot(slots, 'company.name');
 		</div>
 		<Disclosure />
 		<p class="notice">
-			Copyright (C) 2026 {company}. Strikta and the Strikta logo are trademarks of {company} and are not covered by the software licences. Hermes Agent, OpenClaw, Lossless Claw, Claude Code, Codex and other names belong to their owners and are used only to identify their products; Strikta is not affiliated with or endorsed by them.
+			Copyright (C) 2026 {company}. Strikta and the Strikta logo are trademarks of {company}. Hermes Agent, OpenClaw, Lossless Claw, Claude Code, Codex and other names belong to their owners and are used only to identify their products; Strikta is not affiliated with or endorsed by them.
 		</p>
 	</div>
 </footer>
@@ -33,6 +33,11 @@ const company = slot(slots, 'company.name');
 	.footer {
 		margin-block-start: var(--s-space-10);
 		border-block-start: var(--s-space-6) solid var(--s-color-paper);
+	}
+	@media (prefers-color-scheme: dark) {
+		.footer {
+			border-block-start: var(--s-line-hair) solid var(--s-color-rule);
+		}
 	}
 	.inner :global(.lockup) {
 		block-size: 1.5rem;

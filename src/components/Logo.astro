@@ -1,0 +1,17 @@
+---
+import { artwork } from '../logo.ts';
+type Props = { art: string; class?: string };
+const { art, class: className } = Astro.props;
+const { viewBox, shapes } = artwork(process.cwd(), art);
+---
+<svg class:list={['logo', className]} viewBox={viewBox} aria-hidden="true" focusable="false">
+	{shapes.map((shape) => <path d={shape} />)}
+</svg>
+<style>
+	.logo {
+		display: block;
+		block-size: auto;
+		max-inline-size: 100%;
+		fill: currentColor;
+	}
+</style>

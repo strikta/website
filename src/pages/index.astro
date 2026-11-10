@@ -13,11 +13,13 @@ const egress = [
 <Page description="Strikta is an open-source context engine for LLM agents, with Strikta Pro, a Console for what your agent sees.">
 	<section class="intro scheme-dark" aria-labelledby="name">
 		<h1 id="name">Strikta</h1>
-		<p class="lead prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
+		<p class="lead prose">Strikta is an open-source context engine for LLM agents. It keeps every turn verbatim and rebuilds the whole context window before each turn, from that history and the facts derived from it. The model is never asked whether to search. The inspector shows why each item is in the window.</p>
+		<p class="qualifier muted prose">On Hermes, Hermes still compacts its own saved transcript; Strikta journals every request so you can see when its summary reaches the model.</p>
 		<div class="actions">
 			<Button href="/how-it-works">How it works</Button>
 			<Button href="/pro" quiet>Strikta Pro</Button>
 		</div>
+		<p class="platform muted prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
 	</section>
 
 	<section aria-labelledby="inspect">
@@ -81,8 +83,15 @@ const egress = [
 		font-size: var(--s-text-display);
 		line-height: var(--s-leading-tight);
 	}
-	.intro .actions {
-		margin-block-end: 0;
+	.intro .qualifier {
+		margin-block-start: var(--s-space-5);
+		padding-inline-start: var(--s-space-4);
+		border-inline-start: var(--s-line-strong) solid var(--s-color-rule);
+		font-size: var(--s-text-sm);
+	}
+	.intro .platform {
+		margin-block: 0;
+		font-size: var(--s-text-sm);
 	}
 	.note {
 		margin-block-start: var(--s-space-5);

@@ -9,12 +9,10 @@ routes:
   - {path: /security, stages: [s1]}
   - {path: /company, stages: [s1]}
   - {path: /legal, stages: [s1]}
-  # Held back until a new export fills their placeholders.
-  - {path: /legal/licence-terms, stages: []}
+  - {path: /legal/licence-terms, stages: [s1]}
   - {path: /legal/privacy, stages: [s1]}
   - {path: /legal/refund-policy, stages: [s1]}
-  # Held back until a new export fills its placeholder.
-  - {path: /legal/support-period, stages: []}
+  - {path: /legal/support-period, stages: [s1]}
   - {path: /legal/trademarks, stages: [s1]}
   - {path: /legal/company-licence, stages: [s1]}
   - {path: /.well-known/security.txt, stages: [s1]}

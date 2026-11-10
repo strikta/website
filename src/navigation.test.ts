@@ -17,6 +17,6 @@ test('links to pages the current stage does not build are left out', () => {
 
 test('the legal texts not yet in force are listed as drafts, and the privacy notice is in force', () => {
 	const staged = stagedLinks(legal);
-	expect(staged.filter((link) => link.draft).map((link) => link.route)).toEqual(['/legal/licence-terms', '/legal/refund-policy', '/legal/support-period']);
+	expect(staged.filter((link) => link.draft).map((link) => link.route)).toEqual(['/legal/licence-terms', '/legal/refund-policy', '/withdraw', '/legal/support-period']);
 	expect(staged.find((link) => link.route === '/legal/privacy')?.draft).toBe(false);
 });

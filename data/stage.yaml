@@ -15,6 +15,7 @@ routes:
   - {path: /legal/support-period, stages: [s1]}
   - {path: /legal/trademarks, stages: [s1]}
   - {path: /legal/company-licence, stages: [s1]}
+  - {path: /withdraw, stages: [s1]}
   - {path: /.well-known/security.txt, stages: [s1]}
   - {path: /404, stages: [s1]}
 # Stages that publish price figures; none does before S3.

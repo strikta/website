@@ -18,6 +18,7 @@ const TITLE = /^# (?<title>.*)$/u;
 /**
  * An exported legal text split on its `##` headings. Every clause line is kept as it is: only list items,
  * table rows and the file's own emphasis become markup, and nothing joins, reflows or retypes a line.
+ * The title and headings are shown as plain text, without emphasis marks or escaping backslashes.
  */
 export function legalText(text: string): LegalText {
 	const [head = '', ...parts] = text.split(/^## /mu);
@@ -25,10 +26,10 @@ export function legalText(text: string): LegalText {
 	const title = TITLE.exec(first)?.groups?.['title'];
 	const sections = parts.map((part) => {
 		const [heading = '', ...lines] = part.split('\n');
-		const section = { heading, blocks: blocks(lines) };
+		const section = { heading: plainLine(heading), blocks: blocks(lines) };
 		return section;
 	});
-	const legal = { title: title ?? '', preamble: blocks(title === undefined ? [first, ...rest] : rest), sections };
+	const legal = { title: plainLine(title ?? ''), preamble: blocks(title === undefined ? [first, ...rest] : rest), sections };
 	return legal;
 }
 

@@ -65,3 +65,9 @@ test('a backslash-escaped mark is plain text without its backslash, outside code
 	]);
 	expect(plainLine('(\\*) Delete **as** `ap\\*` appropriate.')).toBe('(*) Delete as ap\\* appropriate.');
 });
+
+test('the title and headings show without emphasis marks or escaping backslashes', () => {
+	const legal = legalText('# ZZZ \\* terms\n\n## 1. **Scope** \\#1\nA clause.\n');
+	expect(legal.title).toBe('ZZZ * terms');
+	expect(legal.sections.map((section) => section.heading)).toEqual(['1. Scope #1']);
+});

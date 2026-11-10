@@ -9,12 +9,12 @@ const features = [
 	{ title: 'Browse a large memory', text: 'Facts, entities and stored turns, searched through the engine, built for stores of hundreds of thousands of facts.' },
 	{ title: 'Control capture and see egress', text: 'Pause capture, exclude projects, set each domain\'s audit mode, and see which calls left your machine in the last 24 hours, to which provider, for what purpose. Replay any turn as a dry run and compare it with the original.' }
 ];
-const comparison: readonly { capability: string; command?: string; free: string; pro: string }[] = [
+const comparison: readonly { capability: string; free: string; pro: string }[] = [
 	{ capability: 'Context rebuilt every turn', free: 'Yes', pro: 'Yes' },
-	{ capability: 'Inspect a turn', command: 'strikta inspect-turn', free: 'admin API', pro: 'Interactive inspector' },
+	{ capability: 'Inspect a turn', free: 'Admin API', pro: 'Interactive inspector' },
 	{ capability: 'Replay', free: 'Admin API', pro: 'Replay/Diff view' },
 	{ capability: 'Retract, end, correct, pin, suppress, erase', free: 'Admin API', pro: 'Dry-run preview and undo' },
-	{ capability: 'Health and alerts', command: 'strikta doctor', free: 'admin API', pro: 'Dashboard and alerts' },
+	{ capability: 'Health and alerts', free: 'Admin API', pro: 'Dashboard and alerts' },
 	{ capability: 'Licence', free: 'AGPL-3.0-only', pro: 'Own use without AGPL obligations' }
 ];
 ---
@@ -46,7 +46,7 @@ const comparison: readonly { capability: string; command?: string; free: string;
 		<table class="compare">
 			<thead><tr><th scope="col">Capability</th><th scope="col">Free engine</th><th scope="col">Strikta Pro</th></tr></thead>
 			<tbody>
-				{comparison.map((row) => <tr><th scope="row">{row.capability}</th><td data-label="Free engine">{row.command !== undefined && <><code>{row.command}</code>, </>}{row.free}</td><td data-label="Strikta Pro">{row.pro}</td></tr>)}
+				{comparison.map((row) => <tr><th scope="row">{row.capability}</th><td data-label="Free engine">{row.free}</td><td data-label="Strikta Pro">{row.pro}</td></tr>)}
 			</tbody>
 		</table>
 	</section>

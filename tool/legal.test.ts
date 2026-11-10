@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { legalText } from './legal.ts';
+import { legalText, plainLine } from './legal.ts';
 
 const text = [
 	'# ZZZ Synthetic terms, version 1.0',
@@ -48,4 +48,20 @@ test('the file\'s emphasis, list items and table rows become structure without c
 
 test('a text without a title keeps its first line', () => {
 	expect(legalText('A synthetic line.\n').preamble).toEqual([{ kind: 'paragraph', line: [{ text: 'A synthetic line.', kind: 'plain' }] }]);
+});
+
+test('a backslash-escaped mark is plain text without its backslash, outside code', () => {
+	expect(legalText('I/We (\\*) give **bold \\* words** and `a\\*b` (\\*).\n').preamble).toEqual([
+		{
+			kind: 'paragraph',
+			line: [
+				{ text: 'I/We (*) give ', kind: 'plain' },
+				{ text: 'bold * words', kind: 'strong' },
+				{ text: ' and ', kind: 'plain' },
+				{ text: 'a\\*b', kind: 'code' },
+				{ text: ' (*).', kind: 'plain' }
+			]
+		}
+	]);
+	expect(plainLine('(\\*) Delete **as** `ap\\*` appropriate.')).toBe('(*) Delete as ap\\* appropriate.');
 });

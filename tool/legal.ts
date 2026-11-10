@@ -1,4 +1,4 @@
-/** One run of clause text: plain, strong (`**…**` in the file) or code (`` `…` ``). */
+/** One run of clause text: plain, strong (`**…**` in the file) or code (`` `…` ``); a backslash-escaped mark such as `\\*` is plain text. */
 type Span = { readonly text: string; readonly kind: 'plain' | 'strong' | 'code' };
 export type Line = readonly Span[];
 export type Block =
@@ -8,7 +8,8 @@ export type Block =
 type Section = { readonly heading: string; readonly blocks: readonly Block[] };
 export type LegalText = { readonly title: string; readonly preamble: readonly Block[]; readonly sections: readonly Section[] };
 
-const INLINE = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
+const ESCAPE = /\\(?<escaped>[\\`*_{}[\]()#+.!|<>-])/gu;
+const INLINE = new RegExp(`${ESCAPE.source}|\\*\\*(?<strong>.+?)\\*\\*|\`(?<code>[^\`]+)\``, 'gu');
 const ITEM = /^- (?<item>.*)$/u;
 export const TABLE_ROW = /^\|(?<cells>.*)\|$/u;
 export const TABLE_RULE = /^\|(?:\s*:?-+:?\s*\|)+$/u;
@@ -67,17 +68,44 @@ function appendRow(grouped: Block[], last: Block | undefined, row: readonly Line
 	}
 }
 
+/** A clause line as a page shows it: emphasis and code marks and escaping backslashes removed. */
+export function plainLine(line: string): string {
+	const plain = spans(line)
+		.map((run) => run.text)
+		.join('');
+	return plain;
+}
+
 function spans(line: string): Line {
 	const runs: Span[] = [];
 	let position = 0;
 	for (const match of line.matchAll(INLINE)) {
-		runs.push({ text: line.slice(position, match.index), kind: 'plain' });
-		const strong = match.groups?.['strong'];
-		runs.push(strong === undefined ? { text: match.groups?.['code'] ?? '', kind: 'code' } : { text: strong, kind: 'strong' });
+		runs.push({ text: line.slice(position, match.index), kind: 'plain' }, inlineRun(match.groups ?? {}));
 		const [whole] = match;
 		position = match.index + whole.length;
 	}
 	runs.push({ text: line.slice(position), kind: 'plain' });
-	const filled = runs.filter((run) => run.text !== '');
-	return filled;
+	const joined = runs.filter((run) => run.text !== '').reduce<Span[]>(joinPlain, []);
+	return joined;
+}
+
+function inlineRun(groups: Readonly<Record<string, string | undefined>>): Span {
+	const { escaped, strong, code } = groups;
+	if (escaped !== undefined) {
+		const mark: Span = { text: escaped, kind: 'plain' };
+		return mark;
+	}
+	const run: Span = strong === undefined ? { text: code ?? '', kind: 'code' } : { text: strong.replace(ESCAPE, '$<escaped>'), kind: 'strong' };
+	return run;
+}
+
+/** Runs with a plain run merged into the plain run before it, so an escaped mark stays inside its sentence. */
+function joinPlain(joined: Span[], run: Span): Span[] {
+	const last = joined[joined.length - 1];
+	if (last?.kind === 'plain' && run.kind === 'plain') {
+		joined.splice(-1, 1, { text: `${last.text}${run.text}`, kind: 'plain' });
+		return joined;
+	}
+	joined.push(run);
+	return joined;
 }

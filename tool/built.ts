@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { DRAFT, legal, security, type LegalPage } from '../src/navigation.ts';
-import { filledFile, filledText, loadExport, type Export } from '../src/quote.ts';
+import { filledFile, filledText, loadExport, NOTED, type Export } from '../src/quote.ts';
 import { loadSlots, optionalSlot, type Slots } from '../src/slot.ts';
 import { covers, loadStage, priced, stageRoutes, withheld, type Stage } from '../src/stage.ts';
 import { lineAt, type Finding } from './finding.ts';
-import { TABLE_ROW, TABLE_RULE } from './legal.ts';
+import { plainLine, TABLE_ROW, TABLE_RULE } from './legal.ts';
 import { emailFindings, hostFindings, internalFindings } from './text.ts';
 
 type Page = { readonly route: string; readonly file: string; readonly html: string; readonly text: string };
@@ -43,12 +43,12 @@ const LEGAL_PAGES: readonly LegalPage[] = [...legal, security];
 const MAIN = /<main\b(?:[^>"']|"[^"]*"|'[^']*')*>(?<main>[\s\S]*)<\/main\s*>/iu;
 const NAV = /<nav\b[\s\S]*?<\/nav\s*>/giu;
 const HEADING_MARK = /^(?:#{1,2}|-) /u;
-const EMPHASIS = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
 const EXCERPT_LENGTH = 60;
 const NONE: ReadonlySet<string> = new Set();
 const INLINE_TAG = /(?<tag><(?<name>[a-z][a-z0-9-]*)\b(?<attributes>(?:[^>"']|"[^"]*"|'[^']*')*)>)/giu;
 const ATTRIBUTE = /(?<=[\s/"'])(?<name>[^\s=>/"']+)(?:\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)'|(?<bare>[^\s>]+)))?/gu;
 const HANDLER = /^on[a-z]+$/u;
+const SECTION_END = /<\/(?:section|main|body)\s*>/iu;
 const SCRIPT_SCHEME = /^\s*javascript:/iu;
 
 /**
@@ -85,6 +85,7 @@ function textFindings(page: Page, context: Context): readonly Finding[] {
 		...(priced(stage) ? [] : figureFindings(page, parts, stage)),
 		...thirdPartyFindings(page, slots),
 		...inlineFindings(page),
+		...noteFindings(page),
 		...internalFindings(page.file, page.text),
 		...emailFindings(page.file, page.text),
 		...hostFindings(page.file, page.html, hosts)
@@ -178,6 +179,30 @@ function matches(text: string, patterns: readonly RegExp[]): readonly string[] {
 	return found;
 }
 
+/** Each quote that needs a note is followed, in the same section, by an element with that note's `data-note` name and visible text. */
+function noteFindings(page: Page): readonly Finding[] {
+	const findings = Object.entries(NOTED).flatMap(([identifier, note]) => {
+		const marker = `data-quote="${identifier}"`;
+		const [, ...following] = page.html.split(marker);
+		const missing = following.filter((after) => {
+			const [section = ''] = after.split(SECTION_END);
+			const shown = noted(section, note);
+			return !shown;
+		});
+		const found = missing.map(() => pageFinding(page, marker, 'note', `quote "${identifier}" is shown without its "${note}" note after it in the same section`, 'Three kinds of text'));
+		return found;
+	});
+	return findings;
+}
+
+/** Whether markup holds an element with a `data-note` name and visible text. */
+function noted(markup: string, note: string): boolean {
+	const element = new RegExp(`<(?<tag>[a-z][a-z0-9-]*)\\b[^>]*\\bdata-note="${note}"[^>]*>(?<content>[\\s\\S]*?)</\\k<tag>\\s*>`, 'iu');
+	const content = element.exec(markup)?.groups?.['content'] ?? '';
+	const shown = visibleText(content) !== '';
+	return shown;
+}
+
 /** Inline style and script elements, style attributes, event handlers and javascript: URLs: the site's CSP blocks each. */
 function inlineFindings(page: Page): readonly Finding[] {
 	const found = [...page.html.matchAll(INLINE_TAG)].flatMap((match) => inlineCode(match.groups?.['name']?.toLowerCase() ?? '', match.groups?.['attributes'] ?? '', match.groups?.['tag'] ?? ''));
@@ -253,7 +278,7 @@ function legalPageFindings(page: Page, file: string, directory: string, index: E
 	return findings;
 }
 
-/** The text of each non-empty line of an exported legal text as a page shows it: heading and item marks, table pipes and emphasis marks removed. */
+/** The text of each non-empty line of an exported legal text as a page shows it: heading and item marks, table pipes, emphasis marks and escaping backslashes removed. */
 function exportedLines(content: string): readonly string[] {
 	const lines = content
 		.split('\n')
@@ -261,7 +286,7 @@ function exportedLines(content: string): readonly string[] {
 		.map((line) => {
 			const cells = TABLE_ROW.exec(line)?.groups?.['cells'];
 			const marked = cells === undefined ? line.replace(HEADING_MARK, '') : cells.split('|').map((cell) => cell.trim()).join(' ');
-			const plain = collapse(marked.replace(EMPHASIS, (whole: string, strong?: string, code?: string) => strong ?? code ?? whole));
+			const plain = collapse(plainLine(marked));
 			return plain;
 		});
 	return lines;

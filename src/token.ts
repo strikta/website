@@ -17,21 +17,26 @@ const tokenSchema = zod.object({
 	space_px: zod.array(zod.number()),
 	line_px: zod.record(zod.string(), zod.number()),
 	grid: zod.object({ columns: zod.record(zod.string(), zod.number()), gutter_px: zod.number(), margin: zod.string(), prose_ch: zod.number() }),
-	target_px: zod.number()
+	target_px: zod.number(),
+	display: zod.object({ weight: zod.number(), tracking: zod.string(), leading: zod.number(), opsz: zod.number() }),
+	angle_deg: zod.number(),
+	grain: zod.object({ opacity: zod.number(), tile: zod.string() }),
+	motion: zod.object({ duration_ms: zod.record(zod.string(), zod.number()), ease: zod.string() })
 });
 
 type Tokens = zod.infer<typeof tokenSchema>;
 
 /**
  * The CSS custom properties of `data/tokens.yaml`: colours by system mode (always light in print), type sizes that scale
- * between the fluid widths, space, lines, a zero radius, a target that grows with the root size, and the column count and
- * card span by width. `.scheme-dark` holds the dark colours for the black brand bands in either mode.
+ * between the fluid widths, the display headline, space, lines, a zero radius, a target that grows with the root size, the
+ * system angle, the grain, motion, and the column count and card span by width. `.scheme-dark` holds the dark colours for
+ * the black brand bands in either mode.
  */
 export function tokenStyle(root: string): string {
 	const tokens = tokenSchema.parse(parse(readFileSync(join(root, 'data', 'tokens.yaml'), 'utf8')));
 	const dark = colours(tokens.color.dark);
 	const style = [
-		block(':root', ['color-scheme: light dark;', ...colours(tokens.color.light), ...type(tokens), ...space(tokens)]),
+		block(':root', ['color-scheme: light dark;', ...colours(tokens.color.light), ...type(tokens), ...space(tokens), ...brand(tokens)]),
 		`@media (prefers-color-scheme: dark) {\n${block(':root', dark)}}\n`,
 		block('.scheme-dark', ['color-scheme: dark;', ...dark]),
 		...columns(tokens),
@@ -59,6 +64,20 @@ function space(tokens: Tokens): readonly string[] {
 	const { gutter_px: gutter, margin, prose_ch: prose } = tokens.grid;
 	const layout = ['--s-radius: 0;', `--s-target: max(${String(tokens.target_px)}px, ${rem(tokens.target_px)});`, `--s-gutter: ${rem(gutter)};`, `--s-margin: ${margin};`, `--s-prose: ${String(prose)}ch;`];
 	const properties = [...steps, ...lines, ...layout];
+	return properties;
+}
+
+function brand(tokens: Tokens): readonly string[] {
+	const display = Object.entries(tokens.display).map(([name, value]) => `--s-display-${name}: ${String(value)};`);
+	const durations = Object.entries(tokens.motion.duration_ms).map(([name, value]) => `--s-duration-${name}: ${String(value)}ms;`);
+	const properties = [
+		...display,
+		`--s-angle: ${String(tokens.angle_deg)}deg;`,
+		`--s-grain-opacity: ${String(tokens.grain.opacity)};`,
+		`--s-grain-tile: url('${tokens.grain.tile}');`,
+		...durations,
+		`--s-ease: ${tokens.motion.ease};`
+	];
 	return properties;
 }
 

@@ -1,4 +1,4 @@
-# The design tokens of the Strikta brand, version 1.0.0: the only source of colours, type, spacing and grid.
+# The design tokens of the Strikta brand, version 1.1.0: the only source of colours, type, spacing, grid, angle, grain and motion.
 # Monochrome, square corners, no shadows; fail and warn are the only hues and always come with a word.
 color:
   light: {paper: "#FAFAFA", ink: "#0A0A0A", ink_2: "#3D3D3D", muted: "#6B6B6B", surface: "#F0F0F0", rule: "#D4D4D4", fail: "#C8102E", warn: "#8A5A00"}
@@ -14,9 +14,16 @@ font:
 fluid: {min: 360, max: 2560}
 type_px: {xs: [12, 12], sm: [14, 14], base: [16, 18], lg: [19, 22], xl: [23, 30], 2xl: [28, 44], 3xl: [34, 68], display: [44, 128]}
 leading: {tight: 1.0, heading: 1.1, body: 1.55, mono: 1.5}
+# The display headline: the home hero only.
+display: {weight: 400, tracking: -0.035em, leading: 0.95, opsz: 32}
 space_px: [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192]
 line_px: {hair: 1, strong: 2, focus: 2}
 # Fluid columns by minimum width in rem; no maximum page width, only prose is capped.
 grid: {columns: {0: 4, 40: 8, 64: 12, 160: 16}, gutter_px: 24, margin: "clamp(16px, 4vw, 96px)", prose_ch: 72}
 target_px: 44
-motion: none
+# The one non-orthogonal angle, 1:6 (atan(1/6)), in the mark, the wordmark and at most one large rule per view.
+angle_deg: 9.4623
+# Static grain on ink brand bands only, off in forced colours, print and high contrast.
+grain: {opacity: 0.05, tile: /brand/grain.png}
+# Hard cuts; the home hero's signature animation is the only motion, and reduced motion shows its final state at once.
+motion: {duration_ms: {instant: 0, quick: 120, base: 240, scene: 600}, ease: "cubic-bezier(0.2, 0, 0, 1)"}

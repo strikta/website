@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse, parseDocument } from 'yaml';
 import * as zod from 'zod';
-import { slot, slots, type Slots } from './slot.ts';
+import { optionalSlot, slot, slots, type Slots } from './slot.ts';
 
 const sha256 = zod.string().regex(/^[0-9a-f]{64}$/u);
 const exportSchema = zod
@@ -50,9 +50,9 @@ export function exportProblems(text: string): readonly string[] {
 	return problems;
 }
 
-/** A quote's text with each placeholder replaced by the slot the export maps it to. */
-export function filledText(entry: Quote, filling: Slots): string {
-	const filled = Object.entries(entry.fills).reduce((text, [placeholder, name]) => text.replaceAll(placeholder, slot(filling, name)), entry.text);
+/** A quote's text with each placeholder replaced by the slot the export maps it to; a draft keeps the placeholders no slot fills yet. */
+export function filledText(entry: Quote, filling: Slots, draft?: boolean): string {
+	const filled = fill(entry.text, Object.entries(entry.fills), filling, draft);
 	return filled;
 }
 
@@ -66,19 +66,19 @@ export function quote(identifier: string): string {
 	return filled;
 }
 
-/** An exported file's text with every placeholder that its quotes map to a slot filled in. */
-export function exportedText(path: string): string {
+/** An exported file's text with every placeholder that its quotes map to a slot filled in; a draft keeps the unfilled ones. */
+export function exportedText(path: string, draft?: boolean): string {
 	if (exported?.files.some((file) => file.path === path) !== true) {
 		throw new Error(`No exported file "${path}": a new export is needed.`);
 	}
-	const text = filledFile(exported, path, readFileSync(join(exportDirectory, path), 'utf8'), slots);
+	const text = filledFile(exported, path, readFileSync(join(exportDirectory, path), 'utf8'), slots, draft);
 	return text;
 }
 
-/** An exported file's content with every placeholder its quotes map to a slot filled in. */
-export function filledFile(index: Export, path: string, content: string, filling: Slots): string {
+/** An exported file's content with every placeholder its quotes map to a slot filled in; a draft keeps the unfilled ones. */
+export function filledFile(index: Export, path: string, content: string, filling: Slots, draft?: boolean): string {
 	const fills = index.quotes.filter((entry) => 'file' in entry.source && entry.source.file === path).flatMap((entry) => Object.entries(entry.fills));
-	const filled = fills.reduce((text, [placeholder, name]) => text.replaceAll(placeholder, slot(filling, name)), content);
+	const filled = fill(content, fills, filling, draft);
 	return filled;
 }
 
@@ -86,4 +86,14 @@ export function filledFile(index: Export, path: string, content: string, filling
 export function exportedVersion(path: string): string | undefined {
 	const version = exported?.files.find((file) => file.path === path)?.version;
 	return version;
+}
+
+/** Text with each placeholder replaced by its slot; an unfilled slot fails the build, except in a draft, which shows the placeholder as exported. */
+function fill(text: string, fills: readonly (readonly [string, string])[], filling: Slots, draft?: boolean): string {
+	const filled = fills.reduce((current, [placeholder, name]) => {
+		const value = draft === true ? (optionalSlot(filling, name) ?? placeholder) : slot(filling, name);
+		const replaced = current.replaceAll(placeholder, value);
+		return replaced;
+	}, text);
+	return filled;
 }

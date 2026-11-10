@@ -182,3 +182,38 @@ test('flags a legal page whose text is not in the export', () => {
 		'legal-text: no exported file "legal/trademarks.md": a new export is needed'
 	]);
 });
+
+const draftStage = `${stage}  - {path: /legal/licence-terms, stages: [S1]}\n`;
+const draftLine = 'Until [end date] the price is €99 a year, then €99.';
+const draftQuotes = [...quotes, { id: 'synthetic-price', text: draftLine, pages: ['/legal/licence-terms'], fills: { '[end date]': 'founding.end_date' } }];
+const draftExport = syntheticExport({ 'legal/licence-terms.md': `# Synthetic terms\n\n${draftLine}\n` }, draftQuotes);
+const draftBody = `<h1>Synthetic terms</h1><p>${draftLine}</p>`;
+
+function draftFixes(body: string, header?: string): readonly string[] {
+	const found = fixes({ ...draftExport, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(body, header) });
+	return found;
+}
+
+test('a draft legal page may show the placeholders and price figures of its own exported text', () => {
+	expect(draftFixes(draftBody)).toEqual([]);
+});
+
+test('a draft legal page may not show a placeholder or price figure its exported text does not hold as a whole match', () => {
+	expect(draftFixes(`${draftBody}<p>From [renewal day], €120 a year.</p>`)).toEqual([
+		'placeholder: unfilled slot or placeholder',
+		'price-figure: "€120": stage S1 publishes no price figure; hold the section back in data/stage.yaml'
+	]);
+	expect(draftFixes(`${draftBody}<p>Or €9 a month.</p>`)).toEqual(['price-figure: "€9": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+});
+
+test('a draft legal page may not show its own placeholders and price figures outside <main>', () => {
+	expect(draftFixes(draftBody, 'Until [end date]: €99.')).toEqual([
+		'placeholder: unfilled slot or placeholder',
+		'price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml'
+	]);
+});
+
+test('no other page may show the placeholders and price figures of a draft legal text', () => {
+	const found = fixes({ ...draftExport, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(draftBody), 'dist/legal/index.html': page('<main><p>Starts on 2030-01-10.</p><p>Until [end date], €99.</p></main>') });
+	expect(found).toEqual(['placeholder: unfilled slot or placeholder', 'price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+});

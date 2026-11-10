@@ -20,11 +20,11 @@ Open now: headline option, docs versioning, founding-end instant and time zone, 
 ## Three kinds of text
 - **Quote** `Q`: decided wording. Render only with `<Quote id="…" />` or, for full legal texts, `<Legal file="…" />`, both reading `content/export/`. Never type quoted wording into a component.
 - **Rule copy** `R`: wording you write to implement a rule. A quote may be shortened only at a sentence boundary. Never near a price: "%", "save", "discount", a countdown, or any urgency. Founding price is "a later price", never a discount. Lead with Hermes. Never imply conversation text stays on the user's machine unless they run a local model server. No benchmark numbers without a held-out measurement. Promise nothing beyond the engine's STAYS-AGPL text.
-- **Slot** `{name}`: a fact filled at build from `data/*.yaml` through `slot()`. An unfilled slot fails the build; hide the section by stage, never by a default value.
+- **Slot** `{name}`: a fact filled at build from `data/*.yaml` through `slot()`. An unfilled slot fails the build; hide the section by stage, never by a default value. A draft legal page, marked "Draft, not in force", shows the placeholders of its own exported text as exported, and nowhere else may show one.
 The no-English-keyword rule of the engine governs how Strikta processes users' memory content; the price-word check on this site's own English copy is not such a path.
 
 ## Stages [provisional]
-`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. S1: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. S1 starts only once the first export exists. Later stages are added when the founder starts them, not before.
+`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. S1: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. A draft legal page may show the price figures of its own exported text, and no other page or part of a page may show one. S1 starts only once the first export exists. Later stages are added when the founder starts them, not before.
 
 ## Layout
 - `src/pages/`, `src/components/`, `src/layouts/`, `src/content/docs/` are the only `src` folders; no `lib/`, `utils/`, `helpers/`, `scripts/`.

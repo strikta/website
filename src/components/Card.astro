@@ -9,17 +9,16 @@ const { title } = Astro.props;
 <style>
 	.card {
 		grid-column: span 4;
-		padding: var(--space-5);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		background: var(--surface);
+		padding-block-start: var(--s-space-4);
+		border-block-start: var(--s-line-strong) solid var(--s-color-ink);
 	}
 	.card h3 {
-		margin-block: 0 var(--space-3);
-		font-size: var(--lg-size);
-		line-height: var(--lg-line);
+		margin-block: 0 var(--s-space-3);
+		font-size: var(--s-text-lg);
 	}
 	.card :global(p) {
+		max-inline-size: var(--s-prose);
 		margin: 0;
+		color: var(--s-color-ink-2);
 	}
 </style>

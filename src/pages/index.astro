@@ -11,7 +11,7 @@ const egress = [
 ];
 ---
 <Page description="Strikta is an open-source context engine for LLM agents, with Strikta Pro, a Console for what your agent sees.">
-	<section class="intro" aria-labelledby="name">
+	<section class="intro scheme-dark" aria-labelledby="name">
 		<h1 id="name">Strikta</h1>
 		<p class="lead prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
 		<div class="actions">
@@ -56,7 +56,7 @@ const egress = [
 		<p class="muted note">Quickstart published with the first release.</p>
 	</section>
 
-	<section class="band" aria-labelledby="pro">
+	<section class="pro" aria-labelledby="pro">
 		<h2 id="pro">Strikta Pro: the Console for what your agent sees</h2>
 		<p class="prose">A local web app beside your own engine: the exact window of every turn with the source of each sentence, every candidate with its score terms and rejection reason, corrections with a preview and undo, health and alerts. It runs on your machine and sends nothing to us.</p>
 		<p><strong>On sale from the public launch.</strong></p>
@@ -70,19 +70,29 @@ const egress = [
 </Page>
 <style>
 	.intro {
-		padding-block: var(--space-6) 0;
+		margin: calc(-1 * var(--s-space-8)) calc(-1 * var(--s-margin)) 0;
+		padding: var(--s-space-10) var(--s-margin) var(--s-space-9);
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		background: var(--s-color-paper);
+		color: var(--s-color-ink);
+	}
+	.intro h1 {
+		margin-block-end: var(--s-space-7);
+		font-size: var(--s-text-display);
+		line-height: var(--s-leading-tight);
+	}
+	.intro .actions {
+		margin-block-end: 0;
 	}
 	.note {
-		margin-block-start: var(--space-5);
+		margin-block-start: var(--s-space-5);
 	}
-	.band {
-		margin-block-start: var(--space-8);
-		padding: var(--space-6);
-		border-radius: var(--radius-lg);
-		background: var(--surface);
-		border: 1px solid var(--border);
+	.pro {
+		margin-block-start: var(--s-space-8);
+		padding: var(--s-space-6);
+		border: var(--s-line-hair) solid var(--s-color-ink);
 	}
-	.band h2 {
+	.pro h2 {
 		margin-block-start: 0;
 	}
 </style>

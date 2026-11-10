@@ -1,12 +1,11 @@
 ---
 import { header, stagedLinks } from '../navigation.ts';
-import Mark from './Mark.astro';
 const links = stagedLinks(header);
 const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 ---
 <header class="header">
 	<div class="bar">
-		<a class="wordmark" href="/"><Mark size={32} decorative />strikta</a>
+		<a class="wordmark" href="/" aria-label="Strikta, home">strikta</a>
 		<nav class="wide" aria-label="Main">
 			<ul>
 				{links.map((link) => <li><a href={link.route} aria-current={link.route === current ? 'page' : undefined}>{link.label}</a></li>)}
@@ -27,34 +26,36 @@ const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 		position: sticky;
 		inset-block-start: 0;
 		z-index: 1;
-		border-block-end: 1px solid var(--border);
-		background: var(--bg);
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		background: var(--s-color-paper);
 	}
 	.bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-5);
-		max-inline-size: var(--grid-max);
-		min-block-size: 64px;
-		margin-inline: auto;
-		padding-inline: var(--gutter);
+		gap: var(--s-space-5);
+		min-block-size: 4rem;
+		padding-inline: var(--s-margin);
 	}
 	.wordmark {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-3);
-		min-block-size: var(--target);
-		color: var(--ink);
-		font-family: var(--mono);
-		font-size: var(--lg-size);
-		font-weight: 600;
-		letter-spacing: -0.02em;
+		min-block-size: var(--s-target);
+		color: var(--s-color-ink);
+		font-family: var(--s-font-mono);
+		font-size: var(--s-text-lg);
+		font-weight: 500;
 		text-decoration: none;
+	}
+	.wordmark::before {
+		content: '[';
+	}
+	.wordmark::after {
+		content: ']';
 	}
 	ul {
 		display: flex;
-		gap: var(--space-5);
+		gap: var(--s-space-6);
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -62,20 +63,24 @@ const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 	nav a {
 		display: inline-flex;
 		align-items: center;
-		min-block-size: var(--target);
-		color: var(--ink);
+		min-block-size: var(--s-target);
+		color: var(--s-color-ink);
 		text-decoration: none;
 	}
-	nav a:hover,
-	nav a[aria-current='page'] {
-		color: var(--accent);
+	nav a:hover {
 		text-decoration: underline;
-		text-underline-offset: 6px;
+		text-decoration-thickness: var(--s-line-hair);
+		text-underline-offset: 0.35em;
+	}
+	nav a[aria-current='page'] {
+		text-decoration: underline;
+		text-decoration-thickness: var(--s-line-strong);
+		text-underline-offset: 0.35em;
 	}
 	.menu {
 		display: none;
 	}
-	@media (max-width: 639px) {
+	@media (max-width: 39.99rem) {
 		.wide {
 			display: none;
 		}
@@ -85,28 +90,30 @@ const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 		summary {
 			display: flex;
 			align-items: center;
-			min-block-size: var(--target);
-			padding-inline: var(--space-4);
-			border: 1px solid var(--input-border);
-			border-radius: var(--radius-md);
+			min-block-size: var(--s-target);
+			padding-inline: var(--s-space-4);
+			border: var(--s-line-hair) solid var(--s-color-muted);
 			cursor: pointer;
+		}
+		.menu[open] summary {
+			background: var(--s-color-ink);
+			color: var(--s-color-paper);
 		}
 		.menu[open] nav {
 			position: absolute;
 			inset-inline: 0;
-			inset-block-start: 64px;
-			border-block-end: 1px solid var(--border);
-			background: var(--bg);
+			inset-block-start: 4rem;
+			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+			background: var(--s-color-paper);
 		}
 		.menu ul {
 			flex-direction: column;
 			gap: 0;
 		}
 		.menu a {
-			min-block-size: 48px;
-			padding-inline: var(--gutter);
 			inline-size: 100%;
-			box-sizing: border-box;
+			min-block-size: 3rem;
+			padding-inline: var(--s-margin);
 		}
 	}
 </style>

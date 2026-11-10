@@ -14,7 +14,7 @@ const company = slot(slots, 'company.name');
 		<div class="columns">
 			{columns.map((column) => (
 				<nav aria-label={column.title}>
-					<h2>{column.title}</h2>
+					<h2 class="label">{column.title}</h2>
 					<ul>
 						{column.links.map((link) => <li><a href={link.route}>{link.label}</a></li>)}
 					</ul>
@@ -29,29 +29,37 @@ const company = slot(slots, 'company.name');
 </footer>
 <style>
 	.footer {
-		margin-block-start: var(--space-9);
-		border-block-start: 1px solid var(--border);
-		background: var(--surface);
+		margin-block-start: var(--s-space-10);
+		border-block-start: var(--s-line-hair) solid var(--s-color-rule);
 	}
 	.inner {
 		display: grid;
-		gap: var(--space-6);
-		max-inline-size: var(--grid-max);
-		margin-inline: auto;
-		padding: var(--space-7) var(--gutter);
+		gap: var(--s-space-6);
+		padding: var(--s-space-7) var(--s-margin);
 	}
 	.columns {
 		display: grid;
-		grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-		gap: var(--gutter);
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-5) var(--s-gutter);
 	}
 	.columns nav {
-		grid-column: span 4;
+		grid-column: span 2;
+	}
+	@media (min-width: 40rem) {
+		.columns nav {
+			grid-column: span 4;
+		}
+	}
+	@media (min-width: 160rem) {
+		.columns nav {
+			grid-column: span 3;
+		}
 	}
 	h2 {
-		margin-block: 0 var(--space-2);
-		font-size: var(--sm-size);
-		line-height: var(--sm-line);
+		margin-block: 0 var(--s-space-2);
+		color: var(--s-color-muted);
+		font-family: var(--s-font-sans);
+		letter-spacing: 0.08em;
 	}
 	ul {
 		margin: 0;
@@ -61,13 +69,17 @@ const company = slot(slots, 'company.name');
 	.columns a {
 		display: inline-flex;
 		align-items: center;
-		min-block-size: var(--target);
-		color: var(--ink);
+		min-block-size: var(--s-target);
+		text-decoration: none;
+	}
+	.columns a:hover {
+		text-decoration: underline;
 	}
 	.notice {
+		max-inline-size: calc(var(--s-prose) * 2);
 		margin: 0;
-		color: var(--muted);
-		font-size: var(--xs-size);
-		line-height: var(--xs-line);
+		color: var(--s-color-muted);
+		font-size: var(--s-text-xs);
+		line-height: var(--s-leading-body);
 	}
 </style>

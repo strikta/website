@@ -101,7 +101,10 @@ const egress = [
 		inline-size: var(--s-text-display);
 		margin-block-end: var(--s-space-6);
 	}
+	/* The stroke overlaps both blocks so no anti-aliased seam shows while the slit is closed. */
 	.slit {
+		stroke: currentColor;
+		stroke-width: 0.5;
 		visibility: hidden;
 		animation: slit var(--s-duration-base) steps(2, end) var(--s-duration-scene) backwards;
 	}

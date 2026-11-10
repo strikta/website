@@ -3,3 +3,5 @@ dist/
 .astro/
 .cache/
 .guard.local.yaml
+test-results/
+playwright-report/

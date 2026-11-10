@@ -1,0 +1,242 @@
+---
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+type Props = { title?: string; description: string };
+const { title, description } = Astro.props;
+const heading = title === undefined ? 'Strikta' : `${title} · Strikta`;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{heading}</title>
+		<meta name="description" content={description} />
+		<meta name="referrer" content="no-referrer" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="preload" href="/font/Inter-Latin.woff2" as="font" type="font/woff2" crossorigin />
+		<link rel="stylesheet" href="/token.css" />
+	</head>
+	<body>
+		<a class="skip" href="#main">Skip to content</a>
+		<Header />
+		<main id="main" tabindex="-1">
+			<slot />
+		</main>
+		<Footer />
+	</body>
+</html>
+<style is:global>
+	@font-face {
+		font-family: 'Inter';
+		font-style: normal;
+		font-weight: 400 600;
+		font-display: swap;
+		src: url('/font/Inter-Latin.woff2') format('woff2');
+	}
+	@font-face {
+		font-family: 'Geist Mono';
+		font-style: normal;
+		font-weight: 400 600;
+		font-display: swap;
+		src: url('/font/GeistMono-Latin.woff2') format('woff2');
+	}
+	:root {
+		scroll-padding-block-start: var(--s-space-9);
+	}
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		border-radius: var(--s-radius);
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
+	html {
+		background: var(--s-color-paper);
+		color: var(--s-color-ink);
+	}
+	@media (min-width: 160rem) {
+		html {
+			font-size: max(100%, 100vw / 160);
+		}
+	}
+	body {
+		margin: 0;
+		font-family: var(--s-font-sans);
+		font-size: var(--s-text-base);
+		font-optical-sizing: auto;
+		line-height: var(--s-leading-body);
+		text-size-adjust: 100%;
+	}
+	main {
+		padding: var(--s-space-8) var(--s-margin) 0;
+	}
+	main:focus {
+		outline: none;
+	}
+	h1,
+	h2,
+	h3 {
+		font-weight: 600;
+		font-variation-settings: 'opsz' 32;
+		letter-spacing: -0.02em;
+		line-height: var(--s-leading-heading);
+		text-wrap: balance;
+	}
+	h1 {
+		margin-block: 0 var(--s-space-6);
+		font-size: var(--s-text-3xl);
+	}
+	h2 {
+		margin-block: var(--s-space-8) var(--s-space-5);
+		font-size: var(--s-text-2xl);
+	}
+	h3 {
+		margin-block: var(--s-space-6) var(--s-space-3);
+		font-size: var(--s-text-xl);
+	}
+	p,
+	ul,
+	ol,
+	dl {
+		margin-block: 0 var(--s-space-4);
+	}
+	a {
+		color: var(--s-color-ink);
+		text-decoration: underline;
+		text-decoration-thickness: var(--s-line-hair);
+		text-underline-offset: 0.18em;
+	}
+	a:hover {
+		text-decoration-thickness: var(--s-line-strong);
+	}
+	code {
+		font-family: var(--s-font-mono);
+		font-size: 0.92em;
+	}
+	::selection,
+	mark {
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+	}
+	:focus-visible {
+		outline: var(--s-line-focus) solid var(--s-color-ink);
+		outline-offset: 2px;
+	}
+	.skip {
+		position: absolute;
+		inset-inline-start: var(--s-space-4);
+		inset-block-start: -100px;
+		z-index: 2;
+		padding: var(--s-space-3) var(--s-space-4);
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+	}
+	.skip:focus {
+		inset-block-start: var(--s-space-4);
+	}
+	.prose {
+		max-inline-size: var(--s-prose);
+	}
+	.lead {
+		color: var(--s-color-ink-2);
+		font-size: var(--s-text-lg);
+		line-height: 1.45;
+	}
+	.muted {
+		color: var(--s-color-muted);
+	}
+	.label {
+		font-size: var(--s-text-xs);
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-6) var(--s-gutter);
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-space-4);
+		margin-block: var(--s-space-6);
+	}
+	.compare {
+		inline-size: 100%;
+		max-inline-size: calc(var(--s-prose) * 2);
+		margin-block: 0 var(--s-space-4);
+		border-collapse: collapse;
+	}
+	.compare th,
+	.compare td {
+		padding: var(--s-space-3) var(--s-space-4) var(--s-space-3) 0;
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		text-align: start;
+		vertical-align: top;
+	}
+	.compare thead th {
+		border-block-end: var(--s-line-hair) solid var(--s-color-ink);
+		font-size: var(--s-text-xs);
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.compare tbody th {
+		font-weight: 600;
+	}
+	@media (max-width: 39.99rem) {
+		.compare thead {
+			position: absolute;
+			inline-size: 1px;
+			block-size: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+		}
+		.compare,
+		.compare tbody,
+		.compare tr,
+		.compare th,
+		.compare td {
+			display: block;
+		}
+		.compare tr {
+			padding-block: var(--s-space-3);
+			border-block-start: var(--s-line-hair) solid var(--s-color-rule);
+		}
+		.compare th,
+		.compare td {
+			padding: var(--s-space-1) 0;
+			border: 0;
+		}
+		.compare td::before {
+			display: block;
+			content: attr(data-label);
+			color: var(--s-color-muted);
+			font-size: var(--s-text-xs);
+			font-weight: 500;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+		}
+	}
+	@media (forced-colors: active) {
+		::selection,
+		mark {
+			background: Highlight;
+			color: HighlightText;
+		}
+	}
+	@media print {
+		.header,
+		.footer nav,
+		.skip {
+			display: none;
+		}
+		a[href^='http']::after {
+			content: ' (' attr(href) ')';
+		}
+	}
+</style>

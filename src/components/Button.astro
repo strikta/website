@@ -1,0 +1,28 @@
+---
+type Props = { href: string; quiet?: boolean };
+const { href, quiet } = Astro.props;
+---
+<a class:list={['button', { quiet: quiet === true }]} href={href}><slot /></a>
+<style>
+	.button {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+		padding-block: var(--s-space-2);
+		padding-inline: var(--s-space-4);
+		border: var(--s-line-hair) solid var(--s-color-ink);
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.button:hover,
+	.quiet {
+		background: transparent;
+		color: var(--s-color-ink);
+	}
+	.quiet:hover {
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+	}
+</style>

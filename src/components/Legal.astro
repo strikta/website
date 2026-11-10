@@ -1,0 +1,124 @@
+---
+import { DRAFT } from '../navigation.ts';
+import { exportedText, exportedVersion } from '../quote.ts';
+import { legalText } from '../../tool/legal.ts';
+import Block from './Block.astro';
+import Callout from './Callout.astro';
+type Props = { file: string; draft: boolean };
+const { file, draft } = Astro.props;
+const { title, preamble, sections } = legalText(exportedText(file, draft));
+const version = exportedVersion(file);
+const parts = sections.map((section, index) => ({ ...section, anchor: `section-${String(index + 1)}` }));
+---
+<article class:list={['legal', { indexed: parts.length > 1 }]}>
+	<h1>{title}</h1>
+	{draft && <Callout label="Status"><p><strong>{DRAFT}:</strong> Strikta Pro is not on sale.</p></Callout>}
+	{!draft && version !== undefined && <p class="version">Version {version}</p>}
+	{parts.length > 1 && (
+		<nav class="toc" aria-label="Contents">
+			<h2 class="label">Contents</h2>
+			<ol>{parts.map((part) => <li><a href={`#${part.anchor}`}>{part.heading}</a></li>)}</ol>
+		</nav>
+	)}
+	<div class="body">
+		{preamble.map((block) => <Block block={block} />)}
+		{parts.map((part) => (
+			<section aria-labelledby={part.anchor}>
+				<h2 id={part.anchor}>{part.heading}</h2>
+				{part.blocks.map((block) => <Block block={block} />)}
+			</section>
+		))}
+	</div>
+</article>
+<style>
+	.legal :global(p),
+	.legal :global(ul),
+	.toc {
+		max-inline-size: var(--s-prose);
+	}
+	.version {
+		color: var(--s-color-muted);
+		font-family: var(--s-font-mono);
+		font-size: var(--s-text-sm);
+	}
+	.toc {
+		margin-block: var(--s-space-6);
+		padding-block: var(--s-space-4);
+		border-block: var(--s-line-hair) solid var(--s-color-rule);
+	}
+	.toc h2 {
+		margin-block: 0 var(--s-space-2);
+		color: var(--s-color-muted);
+		font-family: var(--s-font-sans);
+		letter-spacing: 0.08em;
+	}
+	.toc ol {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.toc a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+		text-decoration: none;
+	}
+	.toc a:hover {
+		text-decoration: underline;
+	}
+	section h2 {
+		margin-block-start: var(--s-space-7);
+		font-size: var(--s-text-xl);
+	}
+	.legal :global(.scroll) {
+		margin-block: 0 var(--s-space-5);
+	}
+	.legal :global(table) {
+		border-collapse: collapse;
+		font-size: var(--s-text-sm);
+	}
+	.legal :global(th),
+	.legal :global(td) {
+		min-inline-size: 14ch;
+		padding: var(--s-space-3) var(--s-space-4) var(--s-space-3) 0;
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		text-align: start;
+		vertical-align: top;
+	}
+	.legal :global(th) {
+		border-block-end: var(--s-line-hair) solid var(--s-color-ink);
+		font-weight: 600;
+	}
+	@media (min-width: 64rem) {
+		.indexed {
+			display: grid;
+			grid-template-columns: minmax(12rem, 20rem) minmax(0, 1fr);
+			column-gap: var(--s-space-8);
+			align-items: start;
+		}
+		.indexed > :global(*) {
+			grid-column: 2;
+		}
+		.indexed h1 {
+			grid-column: 1 / -1;
+		}
+		.body {
+			grid-row: 3;
+		}
+		.toc {
+			position: sticky;
+			inset-block-start: var(--s-space-9);
+			grid-area: 3 / 1;
+			max-block-size: calc(100vh - var(--s-space-9));
+			overflow-y: auto;
+			margin-block: 0;
+			padding-block-start: 0;
+			border-block: 0;
+		}
+	}
+	@media print {
+		.toc {
+			display: none;
+		}
+	}
+</style>

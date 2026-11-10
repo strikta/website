@@ -4,6 +4,7 @@
 		"checkJs": true,
 		"noPropertyAccessFromIndexSignature": true,
 		"erasableSyntaxOnly": true,
+		"jsxImportSource": "astro",
 		"types": ["node"]
 	},
 	"exclude": ["dist", "node_modules", ".cache"]

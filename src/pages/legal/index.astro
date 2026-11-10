@@ -1,0 +1,22 @@
+---
+import Page from '../../layouts/Page.astro';
+import { legal, stagedLinks } from '../../navigation.ts';
+const pages = stagedLinks(legal);
+---
+<Page title="Legal" description="The legal texts of Strikta and Strikta Pro.">
+	<h1>Legal</h1>
+	<ul class="pages">
+		{pages.map((page) => <li><a href={page.route}>{page.label}</a>{page.draft && <span class="muted"> (draft, not in force)</span>}</li>)}
+	</ul>
+</Page>
+<style>
+	.pages {
+		padding: 0;
+		list-style: none;
+	}
+	.pages a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+	}
+</style>

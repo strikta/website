@@ -1,0 +1,22 @@
+# The design tokens of the Strikta brand, version 1.0.0: the only source of colours, type, spacing and grid.
+# Monochrome, square corners, no shadows; fail and warn are the only hues and always come with a word.
+color:
+  light: {paper: "#FAFAFA", ink: "#0A0A0A", ink_2: "#3D3D3D", muted: "#6B6B6B", surface: "#F0F0F0", rule: "#D4D4D4", fail: "#C8102E", warn: "#8A5A00"}
+  dark:  {paper: "#0A0A0A", ink: "#F2F2F2", ink_2: "#C8C8C8", muted: "#9A9A9A", surface: "#161616", rule: "#333333", fail: "#FF6B6B", warn: "#F5B83D"}
+contrast_tested:
+  light: {ink_paper: 18.97, ink_2_paper: 10.4, muted_paper: 5.1, muted_surface: 4.67, fail_paper: 5.64, fail_surface: 5.16, warn_paper: 5.68, warn_surface: 5.2, paper_ink: 18.97}
+  dark:  {ink_paper: 17.68, ink_2_paper: 11.83, muted_paper: 7.03, muted_surface: 6.43, fail_paper: 7.13, fail_surface: 6.52, warn_paper: 11.13, warn_surface: 10.17, paper_ink: 17.68}
+mode: system
+font:
+  sans: {family: '"Inter", system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"', licence: "SIL OFL 1.1", serve: "self-hosted WOFF2, Latin subset, weight 400 to 600"}
+  mono: {family: '"Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", "DejaVu Sans Mono", monospace', licence: "SIL OFL 1.1", serve: "self-hosted WOFF2, Latin subset, weight 400 to 600"}
+# Type sizes in px, [at 360 px wide, at 2560 px wide]; sizes between scale with the viewport.
+fluid: {min: 360, max: 2560}
+type_px: {xs: [12, 12], sm: [14, 14], base: [16, 18], lg: [19, 22], xl: [23, 30], 2xl: [28, 44], 3xl: [34, 68], display: [44, 128]}
+leading: {tight: 1.0, heading: 1.1, body: 1.55, mono: 1.5}
+space_px: [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192]
+line_px: {hair: 1, strong: 2, focus: 2}
+# Fluid columns by minimum width in rem; no maximum page width, only prose is capped.
+grid: {columns: {0: 4, 40: 8, 64: 12, 160: 16}, gutter_px: 24, margin: "clamp(16px, 4vw, 96px)", prose_ch: 72}
+target_px: 44
+motion: none

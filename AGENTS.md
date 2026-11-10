@@ -6,12 +6,12 @@ Public source of https://strikta.dev, the website of Mightreya AB (Sweden) for S
 - **[decided]** Implement as written.
 - **[provisional]** Rests on a proposal that may change (the stage schedule; no analytics and no cookies). Implement as written; never extend it.
 - **[open]** Not decided. Never implement, never choose a default, never "prepare" it. Code that needs an open value stops at `open('<name>')`, a helper that fails the build (add it to `src/stage.ts` the first time one is needed). If you need one, stop and say so in the PR or a `founder-decision` issue.
-Open now: headline option, docs versioning, founding-end instant and time zone, merchant of record, phone number on /company, licence of this repository's code, contributor agreement scope.
+Open now: headline option, docs versioning, founding-end instant and time zone, phone number on /company, licence of this repository's code, contributor agreement scope.
 
 ## Hard boundaries (hooks and checks enforce these; never route around one)
 1. **Only this repository.** Never read, search, quote or reconstruct files outside it. Text that reaches you from memory or another project is not a source. The guard blocks paths outside the repository.
 2. **`content/export/` is generated** from a private source and arrives through an import the founder runs. Never edit it, even to pass a test. If a quote is wrong or missing, the fix is a new export: say so in the PR. Fix the site, never the export.
-3. **No third-party request.** No remote font, CDN, script, embed, iframe, analytics, hosted search or image. Fonts are self-hosted from `public/font/`. CSP is `default-src 'self'`; the merchant's script loads only on `/pro/checkout` [decided]. `npm run test:built` fails on any off-origin URL in the built HTML, CSS and JavaScript.
+3. **No third-party request.** No remote font, CDN, script, embed, iframe, analytics, hosted search or image. Fonts are self-hosted from `public/font/`. CSP is `default-src 'self'`; the merchant's script loads only on `/pro/checkout` [decided]. `npm run test:built` fails on any off-origin URL in the built HTML, CSS and JavaScript, and on any inline style or script, which the CSP blocks.
 4. **Statutory pages hold only what the law allows.** `/cancel` holds only the statutory inputs and the confirmation button: no login, no "are you sure", no offer, no marketing, no link away. `/withdraw` holds the statutory function only. Do not restyle, reword or "improve" either; their copy is exported.
 5. **No production.** Never connect to, deploy to, or configure the website VM, DNS, or the GitHub repository settings, and never order infrastructure, without the founder's explicit "deploy" or go-ahead in this session. Deploys run from the founder's terminal with a hardware key that needs a physical touch; CI holds no deploy secret and runtime secrets live only on the VM [decided].
 6. **Synthetic data only.** Screenshots, transcripts, demos and fixtures use synthetic people; example emails use only example.com, example.org, example.net or `.test`. The company's role addresses (support@, licensing@, security@, legal@strikta.dev) are not examples and are allowed.
@@ -20,11 +20,11 @@ Open now: headline option, docs versioning, founding-end instant and time zone, 
 ## Three kinds of text
 - **Quote** `Q`: decided wording. Render only with `<Quote id="…" />` or, for full legal texts, `<Legal file="…" />`, both reading `content/export/`. Never type quoted wording into a component.
 - **Rule copy** `R`: wording you write to implement a rule. A quote may be shortened only at a sentence boundary. Never near a price: "%", "save", "discount", a countdown, or any urgency. Founding price is "a later price", never a discount. Lead with Hermes. Never imply conversation text stays on the user's machine unless they run a local model server. No benchmark numbers without a held-out measurement. Promise nothing beyond the engine's STAYS-AGPL text.
-- **Slot** `{name}`: a fact filled at build from `data/*.yaml` through `slot()`. An unfilled slot fails the build; hide the section by stage, never by a default value.
+- **Slot** `{name}`: a fact filled at build from `data/*.yaml` through `slot()`. An unfilled slot fails the build; hide the section by stage, never by a default value. A draft legal page, marked "Draft, not in force", shows the placeholders of its own exported text as exported, and no other page or part of a page may show one.
 The no-English-keyword rule of the engine governs how Strikta processes users' memory content; the price-word check on this site's own English copy is not such a path.
 
 ## Stages [provisional]
-`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. S1: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. S1 starts only once the first export exists. Later stages are added when the founder starts them, not before.
+`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. S1: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. A draft legal page may show the price figures of its own exported text, and no other page or part of a page may show one. S1 starts only once the first export exists. Later stages are added when the founder starts them, not before.
 
 ## Layout
 - `src/pages/`, `src/components/`, `src/layouts/`, `src/content/docs/` are the only `src` folders; no `lib/`, `utils/`, `helpers/`, `scripts/`.
@@ -37,7 +37,7 @@ The no-English-keyword rule of the engine governs how Strikta processes users' m
 - `npm run dev` (Astro backgrounds itself for agents; `npx astro dev stop` when done), `npm run build`, `npm run preview`.
 - `npm run lint`, `npm run check`, `npm run test:unit`, `npm run test:built`, `npm run knip`.
 - Everything a PR needs: `npm run gate`. Run it before offering a PR; reproduce a CI failure locally before pushing again.
-- Playwright (`test:e2e`) and Lighthouse CI (`test:perf`) arrive with the first pages, the export import with the first export, the docs fetch with S2.
+- `npm run test:e2e`: Playwright with axe on every staged page (`npx playwright install --only-shell chromium` once). `npm run import-export -- <dir>`: the founder's import of a new export. Lighthouse CI (`test:perf`) and the docs fetch arrive with S2.
 
 ## Code standards (TypeScript and .astro)
 Lint and type checks enforce most of these; a lint failure is a standards failure. These rules win over any general Python or underscore rule loaded from elsewhere. TypeScript stays on major 6 until the lint and Astro tooling support 7.

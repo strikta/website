@@ -50,10 +50,22 @@ test.each([
 test.each([
 	'<a href="https://github.com/strikta/strikta">Source</a> <a href="https://example.com">Example</a>',
 	'<p>Write to support@strikta.dev</p>',
-	'<script>const slots = "{launch.date}";</script><p>Fine.</p>',
+	'<script src="/_astro/copy.js" type="module"></script><p data-on="x" title="javascript lessons">Fine.</p>',
 	'<img src="/font/mark.svg" alt="Strikta"> <img src="https://strikta.dev/mark.svg" alt="">'
 ])('passes the home page body %j', (body) => {
 	expect(fixes({ 'dist/index.html': page(body) })).toEqual([]);
+});
+
+test.each([
+	['<style>p { color: red; }</style>', '<style>'],
+	['<p style="color: red">Red.</p>', '<p style="color: red">'],
+	['<script>const slots = "{launch.date}";</script>', '<script>'],
+	['<script type="module">copy();</script>', '<script type="module">'],
+	['<button onclick="copy()">Copy</button>', '<button onclick="copy()">'],
+	['<a href="javascript:copy()">Copy</a>', '<a href="javascript:copy()">'],
+	['<svg viewBox="0 0 1 1"><style>path{fill:red}</style></svg>', '<style>']
+])('flags inline code the CSP blocks: %j', (body, tag) => {
+	expect(fixes({ 'dist/index.html': page(body) })).toEqual([`inline: "${tag}": the site's CSP blocks inline style and script; move it to a file`]);
 });
 
 test('flags a price figure on a stage that publishes none, but not one in a link target', () => {
@@ -187,7 +199,7 @@ const draftStage = `${stage}  - {path: /legal/licence-terms, stages: [S1]}\n`;
 const draftLine = 'Until [end date] the price is €99 a year, then €99.';
 const draftQuotes = [...quotes, { id: 'synthetic-price', text: draftLine, pages: ['/legal/licence-terms'], fills: { '[end date]': 'founding.end_date' } }];
 const draftExport = syntheticExport({ 'legal/licence-terms.md': `# Synthetic terms\n\n${draftLine}\n` }, draftQuotes);
-const draftBody = `<h1>Synthetic terms</h1><p>${draftLine}</p>`;
+const draftBody = `<h1>Synthetic terms</h1><aside><p><strong>Draft, not in force:</strong> Synthetic.</p></aside><p>${draftLine}</p>`;
 
 function draftFixes(body: string, header?: string): readonly string[] {
 	const found = fixes({ ...draftExport, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(body, header) });
@@ -196,6 +208,34 @@ function draftFixes(body: string, header?: string): readonly string[] {
 
 test('a draft legal page may show the placeholders and price figures of its own exported text', () => {
 	expect(draftFixes(draftBody)).toEqual([]);
+});
+
+test('a draft legal page must say in its <main> that it is not in force', () => {
+	expect(draftFixes(draftBody.replace('<p><strong>Draft, not in force:</strong> Synthetic.</p>', ''))).toEqual([
+		'legal-text: a draft legal page says "Draft, not in force" in its <main>: render it with <Legal draft>'
+	]);
+	expect(draftFixes(draftBody.replace('<p><strong>Draft, not in force:</strong> Synthetic.</p>', ''), 'Draft, not in force')).toEqual([
+		'legal-text: a draft legal page says "Draft, not in force" in its <main>: render it with <Legal draft>'
+	]);
+});
+
+test('a page in force may not show the price figures of its own exported text', () => {
+	const privacy = syntheticExport({ 'legal/privacy.md': '# Synthetic notice\n\nFee €99.\n' }, quotes);
+	const found = fixes({ ...privacy, 'data/stage.yaml': `${stage}  - {path: /legal/privacy, stages: [S1]}\n`, 'dist/legal/privacy/index.html': legalPage('<h1>Synthetic notice</h1><p>Fee €99.</p>') });
+	expect(found).toEqual(['price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+});
+
+test('flags an exported placeholder of any length that no slot fills, except on its own draft page', () => {
+	const long = '[month and year: at least five years after the synthetic release date]';
+	const exported = syntheticExport({ 'legal/licence-terms.md': `# Synthetic terms\n\n${draftLine}\n\nSupported until ${long}.\n` }, [
+		...draftQuotes,
+		{ id: 'synthetic-support', text: `Supported until ${long}.`, pages: ['/legal/licence-terms'], fills: { [long]: 'release.support_end' }, source: { file: 'legal/licence-terms.md' } }
+	]);
+	const draftPage = legalPage(`${draftBody}<p>Supported until ${long}.</p>`);
+	expect(fixes({ ...exported, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': draftPage })).toEqual([]);
+	expect(fixes({ ...exported, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': draftPage, 'dist/index.html': page(`<main><p>Until ${long}.</p></main>`) })).toEqual([
+		'placeholder: unfilled slot or placeholder'
+	]);
 });
 
 test('a draft legal page may not show a placeholder or price figure its exported text does not hold as a whole match', () => {

@@ -18,12 +18,13 @@ test('type sizes scale between the fluid widths and stay fixed where both ends a
 	expect(style).toContain('--s-leading-body: 1.55;');
 });
 
-test('space, lines, radius, target, prose width and the column count by width are set', () => {
+test('space, lines, radius, target, prose width and the column count and card span by width are set', () => {
 	expect(style).toContain('--s-space-11: 12rem;');
 	expect(style).toContain('--s-line-focus: 2px;');
 	expect(style).toContain('--s-radius: 0;');
-	expect(style).toContain('--s-target: 44px;');
+	expect(style).toContain('--s-target: max(44px, 2.75rem);');
 	expect(style).toContain('--s-prose: 72ch;');
-	expect(style).toContain(':root {\n\t--s-columns: 4;\n}');
-	expect(style).toContain('@media (min-width: 160rem) {\n:root {\n\t--s-columns: 16;\n}');
+	expect(style).toContain(':root {\n\t--s-columns: 4;\n\t--s-card-span: 4;\n}');
+	expect(style).toContain('@media (min-width: 64rem) {\n:root {\n\t--s-columns: 12;\n\t--s-card-span: 4;\n}');
+	expect(style).toContain('@media (min-width: 160rem) {\n:root {\n\t--s-columns: 16;\n\t--s-card-span: 5;\n}');
 });

@@ -5,7 +5,7 @@ import Block from './Block.astro';
 import Callout from './Callout.astro';
 type Props = { file: string; draft: boolean };
 const { file, draft } = Astro.props;
-const { title, preamble, sections } = legalText(exportedText(file, draft));
+const { title, preamble, sections } = legalText(exportedText(file));
 const version = exportedVersion(file);
 const parts = sections.map((section, index) => ({ ...section, anchor: `section-${String(index + 1)}` }));
 ---
@@ -19,13 +19,15 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 			<ol>{parts.map((part) => <li><a href={`#${part.anchor}`}>{part.heading}</a></li>)}</ol>
 		</nav>
 	)}
-	{preamble.map((block) => <Block block={block} />)}
-	{parts.map((part) => (
-		<section aria-labelledby={part.anchor}>
-			<h2 id={part.anchor}>{part.heading}</h2>
-			{part.blocks.map((block) => <Block block={block} />)}
-		</section>
-	))}
+	<div class="body">
+		{preamble.map((block) => <Block block={block} />)}
+		{parts.map((part) => (
+			<section aria-labelledby={part.anchor}>
+				<h2 id={part.anchor}>{part.heading}</h2>
+				{part.blocks.map((block) => <Block block={block} />)}
+			</section>
+		))}
+	</div>
 </article>
 <style>
 	.legal :global(p),
@@ -83,7 +85,7 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 		vertical-align: top;
 	}
 	.legal :global(th) {
-		border-block-end: var(--s-line-strong) solid var(--s-color-ink);
+		border-block-end: var(--s-line-hair) solid var(--s-color-ink);
 		font-weight: 600;
 	}
 	@media (min-width: 64rem) {
@@ -99,11 +101,15 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 		.indexed h1 {
 			grid-column: 1 / -1;
 		}
+		.body {
+			grid-row: 3;
+		}
 		.toc {
 			position: sticky;
 			inset-block-start: var(--s-space-9);
-			grid-column: 1;
-			grid-row: 2 / span 40;
+			grid-area: 3 / 1;
+			max-block-size: calc(100vh - var(--s-space-9));
+			overflow-y: auto;
 			margin-block: 0;
 			padding-block-start: 0;
 			border-block: 0;

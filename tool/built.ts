@@ -43,15 +43,20 @@ const HEADING_MARK = /^(?:#{1,2}|-) /u;
 const EMPHASIS = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
 const EXCERPT_LENGTH = 60;
 
-/**
- * `dist/`: no placeholder, price word, early price figure, third-party request, internal ID, host, stray page, missing quote or over-budget page.
- * A draft legal page, marked "Draft, not in force", may show the placeholders and price figures of its own exported text, and nothing else.
- */
+/** `dist/`: no placeholder, price word, early price figure, third-party request, internal ID, host, stray page, missing quote or over-budget page. */
 export function builtFindings(dist: string, root: string, hosts: readonly string[]): readonly Finding[] {
 	const built = readBuilt(dist, root);
 	const slots = loadSlots(root);
 	const stage = loadStage(root) ?? NO_STAGE;
-	const pageFindings = built.pages.flatMap((page) => textFindings(page, root, slots, stage, hosts));
+	const pageFindings = built.pages.flatMap((page) => [
+		...placeholderFindings(page),
+		...priceFindings(page),
+		...(priced(stage) ? [] : figureFindings(page, stage)),
+		...thirdPartyFindings(page, slots),
+		...internalFindings(page.file, page.text),
+		...emailFindings(page.file, page.text),
+		...hostFindings(page.file, page.html, hosts)
+	]);
 	const styleFindings = built.styles.flatMap((style) => thirdPartyFindings(style, slots));
 	const scriptFindings = built.scripts.flatMap(absoluteFindings);
 	const findings = [...pageFindings, ...styleFindings, ...scriptFindings, ...quoteFindings(built, root, slots, stage), ...legalFindings(built, root, slots), ...stageFindings(built, stage), ...budgetFindings(dist, built)];
@@ -63,21 +68,6 @@ export function visibleText(html: string): string {
 	const body = BODY.exec(html)?.groups?.['body'] ?? html;
 	const text = collapse(decode(body.replace(HIDDEN, '').replace(BLOCK_TAG, ' ').replace(TAG, '')));
 	return text;
-}
-
-/** One page's text and markup: placeholders, price words and figures, requests, internal IDs, emails and hosts. */
-function textFindings(page: Page, root: string, slots: Slots, stage: Stage, hosts: readonly string[]): readonly Finding[] {
-	const draft = draftText(page, root, slots);
-	const findings = [
-		...placeholderFindings(page, draft),
-		...priceFindings(page),
-		...(priced(stage) ? [] : figureFindings(page, stage, draft)),
-		...thirdPartyFindings(page, slots),
-		...internalFindings(page.file, page.text),
-		...emailFindings(page.file, page.text),
-		...hostFindings(page.file, page.html, hosts)
-	];
-	return findings;
 }
 
 function readBuilt(dist: string, root: string): Built {
@@ -99,25 +89,9 @@ function routeOf(file: string): string {
 	return route;
 }
 
-/** The exported text of a draft legal page as the page fills it, or empty for every other page. */
-function draftText(page: Page, root: string, slots: Slots): string {
-	const entry = LEGAL_PAGES.find((candidate) => candidate.route === page.route && candidate.draft);
-	const directory = join(root, 'content', 'export');
-	const index = loadExport(directory);
-	if (entry === undefined || index?.files.some((file) => file.path === entry.file) !== true) {
-		const none = '';
-		return none;
-	}
-	const text = collapse(filledFile(index, entry.file, readFileSync(join(directory, entry.file), 'utf8'), slots, true));
-	return text;
-}
-
-function placeholderFindings(page: Page, draft: string): readonly Finding[] {
+function placeholderFindings(page: Page): readonly Finding[] {
 	const findings = PLACEHOLDERS.flatMap((pattern) =>
-		[...page.text.matchAll(pattern)]
-			.map((match) => match.groups?.['found'] ?? '')
-			.filter((found) => !draft.includes(found))
-			.map((found) => pageFinding(page, found, 'placeholder', 'unfilled slot or placeholder', 'Three kinds of text'))
+		[...page.text.matchAll(pattern)].map((match) => pageFinding(page, match.groups?.['found'] ?? '', 'placeholder', 'unfilled slot or placeholder', 'Three kinds of text'))
 	);
 	return findings;
 }
@@ -130,11 +104,10 @@ function priceFindings(page: Page): readonly Finding[] {
 	return findings;
 }
 
-function figureFindings(page: Page, stage: Stage, draft: string): readonly Finding[] {
-	const findings = [...page.text.matchAll(PRICE_FIGURE)]
-		.map((match) => match.groups?.['found'] ?? '')
-		.filter((found) => !draft.includes(found))
-		.map((found) => pageFinding(page, found, 'price-figure', `"${found}": stage ${stage.current} publishes no price figure; hold the section back in data/stage.yaml`, 'Stages [provisional]'));
+function figureFindings(page: Page, stage: Stage): readonly Finding[] {
+	const findings = [...page.text.matchAll(PRICE_FIGURE)].map((match) =>
+		pageFinding(page, match.groups?.['found'] ?? '', 'price-figure', `"${match.groups?.['found'] ?? ''}": stage ${stage.current} publishes no price figure; hold the section back in data/stage.yaml`, 'Stages [provisional]')
+	);
 	return findings;
 }
 
@@ -163,7 +136,8 @@ function quoteFindings(built: Built, root: string, slots: Slots, stage: Stage): 
 	const pages = new Map(built.pages.map((page) => [page.route, page]));
 	const findings = quotes.flatMap((quote) => {
 		const shown = quote.pages.filter((route) => !withheld(stage, route, quote.id)).flatMap((route) => pages.get(route) ?? []);
-		const missing = shown.filter((page) => !page.text.includes(collapse(filledText(quote, slots, draft(page.route)))));
+		const text = shown.length === 0 ? '' : collapse(filledText(quote, slots));
+		const missing = shown.filter((page) => !page.text.includes(text));
 		const absent = missing.map((page) => pageFinding(page, '', 'quote-presence', `quote "${quote.id}" is missing: render it with <Quote>; never retype it`, 'Three kinds of text'));
 		return absent;
 	});
@@ -187,7 +161,7 @@ function legalPageFindings(page: Page, file: string, directory: string, index: E
 		const absent = [pageFinding(page, '', 'legal-text', `no exported file "${file}": a new export is needed`, 'Three kinds of text')];
 		return absent;
 	}
-	const lines = exportedLines(filledFile(index, file, readFileSync(join(directory, file), 'utf8'), slots, draft(page.route)));
+	const lines = exportedLines(filledFile(index, file, readFileSync(join(directory, file), 'utf8'), slots));
 	const findings = unmatched(mainText(page.html), lines).map((line) =>
 		pageFinding(page, '', 'legal-text', `"${line.slice(0, EXCERPT_LENGTH)}" of ${file} is missing or out of order: render it with <Legal>; never retype it`, 'Three kinds of text')
 	);
@@ -259,12 +233,6 @@ function localAssets(files: readonly string[], text: string): readonly string[] 
 	const urls = REQUESTS.flatMap((pattern) => [...text.matchAll(pattern)].map((match) => match.groups?.['url'] ?? ''));
 	const assets = urls.filter((url) => LOCAL_ASSET.test(url) && files.includes(url)).map((url) => url.slice(1));
 	return assets;
-}
-
-/** Whether a route is a legal page marked as a draft. */
-function draft(route: string): boolean {
-	const marked = LEGAL_PAGES.some((page) => page.route === route && page.draft);
-	return marked;
 }
 
 function pageFinding(page: Page, excerpt: string, rule: string, fix: string, section: string): Finding {

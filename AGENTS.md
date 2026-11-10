@@ -48,7 +48,7 @@ Lint and type checks enforce most of these; a lint failure is a standards failur
 - One component per file, single-word PascalCase (`Price.astro`). Logic in the frontmatter, markup below.
 - YAML for all data and config; JSON only where a tool requires it.
 - Static SQL in module constants. Comments say what code does. Remove unused code. Fix globally: search for the same pattern before fixing one place.
-- No client JavaScript except the copy buttons and, on `/pro/checkout`, the merchant's script. Budgets: home page ≤120 KB, JavaScript ≤1 KB, LCP ≤1.5 s on 4G. WCAG 2.2 AA; targets ≥44 px; `motion: none`; colours only from the design tokens.
+- No client JavaScript except the copy buttons and, on `/pro/checkout`, the merchant's script. Budgets: home page ≤120 KB, JavaScript ≤1 KB, LCP ≤1.5 s on 4G. WCAG 2.2 AA; targets ≥44 px; colours, angle, grain and motion only from the design tokens. Motion: hard cuts, no transitions; the one animation is the home hero's, in CSS, played once, and `prefers-reduced-motion` shows its final state.
 - Before writing a component, page, route or test, open `agent/pattern.md` and follow the matching pattern.
 
 ## Testing

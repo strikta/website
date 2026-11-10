@@ -38,6 +38,15 @@ test('the site ships no script', async ({ page }) => {
 	expect(await page.locator('script').count()).toBe(0);
 });
 
+test('the home hero plays its one animation, and reduced motion shows the final state at once', async ({ page }) => {
+	await page.goto('/');
+	const window = page.getByRole('img', { name: 'Context window in render order' });
+	expect(await window.evaluate((element) => getComputedStyle(element).animationName)).toBe('build');
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	expect(await window.evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
+	expect(await page.locator('.intro .mark path').evaluateAll((paths) => paths.map((path) => getComputedStyle(path).animationName))).toEqual(['none', 'none']);
+});
+
 /** Records and aborts every request that leaves the site's origin. */
 async function watchForeign(page: Page, baseURL?: string): Promise<readonly string[]> {
 	if (baseURL === undefined) {

@@ -13,7 +13,9 @@ const heading = title === undefined ? 'Strikta' : `${title} · Strikta`;
 		<title>{heading}</title>
 		<meta name="description" content={description} />
 		<meta name="referrer" content="no-referrer" />
+		<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<link rel="preload" href="/font/Inter-Latin.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="stylesheet" href="/token.css" />
 	</head>
@@ -49,9 +51,15 @@ const heading = title === undefined ? 'Strikta' : `${title} · Strikta`;
 	*::after {
 		box-sizing: border-box;
 		border-radius: var(--s-radius);
-		animation: none !important;
 		transition: none !important;
 		scroll-behavior: auto !important;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation: none !important;
+		}
 	}
 	html {
 		background: var(--s-color-paper);
@@ -139,6 +147,26 @@ const heading = title === undefined ? 'Strikta' : `${title} · Strikta`;
 	}
 	.prose {
 		max-inline-size: var(--s-prose);
+	}
+	.s-brand-moment {
+		position: relative;
+		isolation: isolate;
+		background: var(--s-color-paper);
+		color: var(--s-color-ink);
+	}
+	.s-brand-moment::before {
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		content: '';
+		background: var(--s-grain-tile);
+		opacity: var(--s-grain-opacity);
+		pointer-events: none;
+	}
+	@media (forced-colors: active), print, (prefers-contrast: more) {
+		.s-brand-moment::before {
+			content: none;
+		}
 	}
 	.lead {
 		color: var(--s-color-ink-2);

@@ -5,7 +5,7 @@ import Block from './Block.astro';
 import Callout from './Callout.astro';
 type Props = { file: string; draft: boolean };
 const { file, draft } = Astro.props;
-const { title, preamble, sections } = legalText(exportedText(file));
+const { title, preamble, sections } = legalText(exportedText(file, draft));
 const version = exportedVersion(file);
 const parts = sections.map((section, index) => ({ ...section, anchor: `section-${String(index + 1)}` }));
 ---

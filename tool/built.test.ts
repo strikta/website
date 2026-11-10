@@ -182,3 +182,24 @@ test('flags a legal page whose text is not in the export', () => {
 		'legal-text: no exported file "legal/trademarks.md": a new export is needed'
 	]);
 });
+
+const draftStage = `${stage}  - {path: /legal/licence-terms, stages: [S1]}\n`;
+const draftFile = '# Synthetic terms\n\nUntil [end date] the price is €99 a year.\n';
+const draftQuotes = [...quotes, { id: 'synthetic-price', text: 'Until [end date] the price is €99 a year.', pages: ['/legal/licence-terms'], fills: { '[end date]': 'founding.end_date' } }];
+
+function draftFixes(body: string): readonly string[] {
+	const exported = syntheticExport({ 'legal/licence-terms.md': draftFile }, draftQuotes);
+	const found = fixes({ ...exported, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(body) });
+	return found;
+}
+
+test('a draft legal page may show the placeholders and price figures of its own exported text', () => {
+	expect(draftFixes('<h1>Synthetic terms</h1><p>Until [end date] the price is €99 a year.</p>')).toEqual([]);
+});
+
+test('a draft legal page may not show a placeholder or price figure its text does not hold', () => {
+	expect(draftFixes('<h1>Synthetic terms</h1><p>Until [end date] the price is €99 a year.</p><p>From [renewal day], €120 a year.</p>')).toEqual([
+		'placeholder: unfilled slot or placeholder',
+		'price-figure: "€120": stage S1 publishes no price figure; hold the section back in data/stage.yaml'
+	]);
+});

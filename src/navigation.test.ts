@@ -13,5 +13,9 @@ test('links to pages the current stage does not build are left out', () => {
 	expect(routes).toContain('/pro');
 	expect(routes).not.toContain('/docs');
 	expect(routes).not.toContain('/head-to-head');
-	expect(stagedLinks(legal).map((link) => link.route)).not.toContain('/legal/support-period');
+});
+
+test('the legal texts not yet in force are published as drafts', () => {
+	const drafts = stagedLinks(legal).filter((link) => link.draft).map((link) => link.route);
+	expect(drafts).toEqual(['/legal/licence-terms', '/legal/refund-policy', '/legal/privacy', '/legal/support-period']);
 });

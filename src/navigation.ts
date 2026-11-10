@@ -51,9 +51,9 @@ export const help: readonly Link[] = [
 export const legal: readonly LegalPage[] = [
 	{ route: '/legal/licence-terms', label: 'Licence Terms', file: 'legal/licence-terms.md', draft: true },
 	{ route: '/legal/refund-policy', label: 'Refund policy', file: 'legal/refund-policy.md', draft: true },
-	{ route: '/legal/privacy', label: 'Privacy notice', file: 'legal/privacy.md', draft: false },
+	{ route: '/legal/privacy', label: 'Privacy notice', file: 'legal/privacy.md', draft: true },
 	{ route: '/legal/trademarks', label: 'Trademarks', file: 'legal/trademarks.md', draft: false },
-	{ route: '/legal/support-period', label: 'Support period', file: 'legal/support-period.md', draft: false },
+	{ route: '/legal/support-period', label: 'Support period', file: 'legal/support-period.md', draft: true },
 	{ route: '/legal/company-licence', label: 'Company licence terms', file: 'legal/company-licence.md', draft: false }
 ];
 

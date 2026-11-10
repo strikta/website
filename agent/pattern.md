@@ -35,7 +35,7 @@ import Legal from '../../components/Legal.astro';
 ---
 <Legal file="legal/refund-policy.md" draft />
 ```
-A legal text whose placeholders no slot fills yet stays out of the stage (`stages: []`) until a new export fills them; its quotes list its page under `pages` in the export, so `npm run test:built` proves the text arrived.
+A legal text that is not in force is marked `draft: true` in `src/navigation.ts`: its page says "Draft, not in force" and shows the placeholders no slot fills yet exactly as exported, and `npm run test:built` accepts only the placeholders and price figures of that page's own exported text. Any other legal text whose placeholders no slot fills stays out of the stage (`stages: []`) until a new export fills them. Its quotes list its page under `pages` in the export, so `npm run test:built` proves the text arrived.
 
 ## Component
 One component per file, single-word PascalCase name, logic in the frontmatter, markup below, colours only from the design tokens, no client script.

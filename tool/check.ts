@@ -27,7 +27,6 @@ const CHANGE = /:\d{6} (?<mode>\d{6}) [0-9a-f]+ (?<sha>[0-9a-f]+) [A-Z]+\0(?<pat
 const GITLINK = '160000';
 const BATCH_HEADER = /^[0-9a-f]+ blob (?<size>\d+)$/u;
 const RECORD = '\u001e';
-const EMPTY_PUSH: Finding = { file: 'pre-push input', line: 1, rule: 'pushed', fix: 'no ref to check: nothing to push, or the hook did not forward the pre-push input', section: 'Hard boundaries' };
 const DATA_RULES: ReadonlyMap<string, (file: string, text: string) => readonly Finding[]> = new Map([
 	['data/offer.yaml', foundingFindings],
 	['data/tokens.yaml', contrastFindings]
@@ -80,10 +79,10 @@ function built(targets: readonly string[], directory: string): readonly Finding[
 	return findings;
 }
 
-/** Everything a push publishes (pre-push refs on stdin, or revisions): no internal identifier or host in a ref name, or in any unpushed commit's message, file names or file content; empty pre-push input fails. */
+/** Everything a push publishes (pre-push refs on stdin, or revisions): no internal identifier or host in a ref name, or in any unpushed commit's message, file names or file content. */
 function pushed(targets: readonly string[], directory: string): readonly Finding[] {
 	const push = targets.length > 0 ? { tips: targets, names: targets } : pushedRefs(readFileSync(0, 'utf8'));
-	const findings = push.names.length === 0 ? [EMPTY_PUSH] : pushFindings(push, directory);
+	const findings = pushFindings(push, directory);
 	return findings;
 }
 
@@ -132,7 +131,7 @@ function unpushedMessages(directory: string, tips: readonly string[]): readonly 
 
 /** Each file an unpushed commit adds or changes, with the blob it holds there: merges against each parent, a rename as its new name. */
 function unpushedChanges(directory: string, tips: readonly string[]): readonly Change[] {
-	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '-z', '-m', '--raw', '--no-abbrev', '--no-renames', '--diff-filter=d', '--format=%x1e%H', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: GIT_BUFFER });
+	const log = tips.length === 0 ? '' : execFileSync('git', ['log', '-z', '-m', '--root', '--raw', '--no-abbrev', '--no-renames', '--diff-filter=d', '--format=%x1e%H', ...tips, '--not', '--remotes'], { cwd: directory, encoding: 'utf8', maxBuffer: GIT_BUFFER });
 	const changes = log.split(RECORD).flatMap((record) => {
 		const commit = COMMIT.exec(record)?.groups?.['commit'] ?? '';
 		return [...record.matchAll(CHANGE)].flatMap(({ groups }) => (groups?.['sha'] === undefined || groups['path'] === undefined ? [] : [{ commit, mode: groups['mode'] ?? '', sha: groups['sha'], path: groups['path'] }]));

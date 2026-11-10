@@ -126,7 +126,7 @@ test.each([
 	['refs/heads/synthetic ZZZ-not-a-revision refs/heads/synthetic 0000000000000000000000000000000000000000\n', 1],
 	['refs/heads/ZZZ-RB-000 0000000000000000000000000000000000000000 refs/heads/synthetic 1111111111111111111111111111111111111111\n', 1],
 	['refs/heads/synthetic 0000000000000000000000000000000000000000 refs/heads/vm.example.test 1111111111111111111111111111111111111111\n', 1],
-	['', 1]
+	['', 0]
 ])('pushed reads the local tips and ref names from the pre-push input %j', (input, status) => {
 	const synthetic = repository(HOSTS);
 	const script = `import { check } from ${JSON.stringify(join(import.meta.dirname, 'check.ts'))}\nprocess.exitCode = check(['pushed'], process.argv[1])\n`;
@@ -176,6 +176,16 @@ test('pushed refuses an identifier in a file name', () => {
 	expect(output).toContain(`commit ${named} (file name):1: internal-id`);
 });
 
+test('pushed checks the content of a root commit whatever log.showRoot says', () => {
+	const synthetic = repository({});
+	synthetic.git('', 'config', 'log.showRoot', 'false');
+	const root = synthetic.commit('Add notes\n', { 'notes.md': 'ZZZ-RB-000\n' });
+	const { code, output } = pushedOutput(synthetic, [root]);
+	synthetic.remove();
+	expect(code).toBe(1);
+	expect(output).toContain('notes.md (in a pushed commit):1: internal-id');
+});
+
 test('pushed skips content a remote already holds', () => {
 	const synthetic = repository({});
 	const published = synthetic.commit('Add notes\n', { 'notes.md': 'ZZZ-RB-000\n' });
@@ -221,6 +231,15 @@ test('the pre-push hook checks a force push that only rewords a commit message',
 	clone.remove();
 	expect(status).toBe(1);
 	expect(output).toContain('internal-id');
+});
+
+test('the pre-push hook lets an up-to-date push through', () => {
+	const clone = hookedClone();
+	clone.install();
+	const { status, output } = clone.git('push', 'origin', 'main');
+	clone.remove();
+	expect(status).toBe(0);
+	expect(output).toContain('Everything up-to-date');
 });
 
 /** A clone of a bare remote with this repository's hook configuration and checker and a pushed `main`; `install` installs the hooks, so the setup commits run none. */

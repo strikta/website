@@ -1,9 +1,9 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { root } from './local.ts';
 
-/** The Content-Security-Policy the live server sends with every response. */
+/** The Content-Security-Policy the live server sends with every response, as recorded in agent/hosting.md. */
 export const POLICY = "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'";
 
 const TYPES: Readonly<Record<string, string>> = {
@@ -24,7 +24,7 @@ if (import.meta.main) {
 	serve(join(root, 'dist'), Number.parseInt(port, 10));
 }
 
-/** Serves a built site from a folder on this machine only, with the live server's Content-Security-Policy on every response. */
+/** Serves a built site from a folder on this machine only, with the live server's Content-Security-Policy (agent/hosting.md) on every response. */
 export function serve(dist: string, port: number): Server {
 	const server = createServer((request, response) => {
 		respond(dist, request, response);
@@ -45,11 +45,31 @@ function respond(dist: string, request: IncomingMessage, response: ServerRespons
 	response.end(readFileSync(file));
 }
 
-/** The file a request path names inside the built folder: a folder's index.html, a page's .html file, or the file itself; none outside the folder. */
+/** The file a request path names inside the built folder: a folder's index.html, a page's .html file, or the file itself; none outside the folder, through a link or not, and none for a malformed path. */
 function fileOf(dist: string, pathname: string): string | undefined {
-	const base = resolve(dist);
-	const target = resolve(base, `.${decodeURIComponent(pathname)}`);
-	const candidates = [target, join(target, 'index.html'), `${target}.html`];
-	const found = target === base || target.startsWith(`${base}${sep}`) ? candidates.find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) : undefined;
+	const base = realpathSync(dist);
+	const decoded = decodedPath(pathname);
+	const target = decoded === undefined ? undefined : resolve(base, `.${decoded}`);
+	const candidates = target === undefined ? [] : [target, join(target, 'index.html'), `${target}.html`];
+	const found = candidates.find((candidate) => existsSync(candidate) && statSync(candidate).isFile() && inside(base, realpathSync(candidate)));
 	return found;
+}
+
+/** A request path with its percent-escapes decoded, or undefined when they are malformed. */
+function decodedPath(pathname: string): string | undefined {
+	try {
+		const decoded = decodeURIComponent(pathname);
+		return decoded;
+	} catch (error) {
+		if (error instanceof URIError) {
+			return undefined;
+		}
+		throw error;
+	}
+}
+
+/** Whether a resolved path lies below a folder. */
+function inside(folder: string, path: string): boolean {
+	const contained = path.startsWith(`${folder}${sep}`);
+	return contained;
 }

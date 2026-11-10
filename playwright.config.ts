@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4321;
 
-// Journeys run against the built site in `dist/`, served on this machine only with the live server's Content-Security-Policy.
+// Journeys run against the built site in `dist/`, served on this machine only with the live server's Content-Security-Policy, recorded in agent/hosting.md.
 export default defineConfig({
 	testDir: 'e2e',
 	testMatch: '**/*.e2e.ts',

@@ -13,6 +13,7 @@ routes:
   - {path: /legal/licence-terms, stages: []}
   - {path: /legal/privacy, stages: []}
   - {path: /legal/refund-policy, stages: []}
+  - {path: /legal/support-period, stages: []}
   - {path: /legal/trademarks, stages: [s1]}
   - {path: /legal/company-licence, stages: [s1]}
   - {path: /.well-known/security.txt, stages: [s1]}

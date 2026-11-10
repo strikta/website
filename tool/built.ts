@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import { legal, security, type LegalPage } from '../src/navigation.ts';
+import { DRAFT, legal, security, type LegalPage } from '../src/navigation.ts';
 import { filledFile, filledText, loadExport, type Export } from '../src/quote.ts';
 import { loadSlots, optionalSlot, type Slots } from '../src/slot.ts';
 import { covers, loadStage, priced, stageRoutes, withheld, type Stage } from '../src/stage.ts';
@@ -46,9 +46,8 @@ const HEADING_MARK = /^(?:#{1,2}|-) /u;
 const EMPHASIS = /\*\*(?<strong>.+?)\*\*|`(?<code>[^`]+)`/gu;
 const EXCERPT_LENGTH = 60;
 const NONE: ReadonlySet<string> = new Set();
-const DRAFT_MARK = 'Draft, not in force';
 const INLINE_TAG = /(?<tag><(?<name>[a-z][a-z0-9-]*)\b(?<attributes>(?:[^>"']|"[^"]*"|'[^']*')*)>)/giu;
-const ATTRIBUTE = /\s(?<name>[^\s=>/]+)(?:\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)'|(?<bare>[^\s>]+)))?/gu;
+const ATTRIBUTE = /(?<=[\s/"'])(?<name>[^\s=>/"']+)(?:\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)'|(?<bare>[^\s>]+)))?/gu;
 const HANDLER = /^on[a-z]+$/u;
 const SCRIPT_SCHEME = /^\s*javascript:/iu;
 
@@ -249,7 +248,7 @@ function legalPageFindings(page: Page, file: string, directory: string, index: E
 	const missing = unmatched(text, lines).map((line) =>
 		pageFinding(page, '', 'legal-text', `"${line.slice(0, EXCERPT_LENGTH)}" of ${file} is missing or out of order: render it with <Legal>; never retype it`, 'Three kinds of text')
 	);
-	const unmarked = draft(page.route) && !text.includes(DRAFT_MARK) ? [pageFinding(page, '', 'legal-text', `a draft legal page says "${DRAFT_MARK}" in its <main>: render it with <Legal draft>`, 'Three kinds of text')] : [];
+	const unmarked = draft(page.route) && !text.includes(DRAFT) ? [pageFinding(page, '', 'legal-text', `a draft legal page says "${DRAFT}" in its <main>: render it with <Legal draft>`, 'Three kinds of text')] : [];
 	const findings = [...unmarked, ...missing];
 	return findings;
 }

@@ -39,6 +39,9 @@ export const product: readonly Link[] = [
 	{ route: '/docs', label: 'Docs' }
 ];
 
+/** The mark a draft legal page shows in its <main>. */
+export const DRAFT = 'Draft, not in force';
+
 /** The security policy, an exported legal text on its own page. */
 export const security: LegalPage = { route: '/security', label: 'Security', file: 'legal/security.md', draft: false };
 

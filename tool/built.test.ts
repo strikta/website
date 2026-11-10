@@ -59,6 +59,8 @@ test.each([
 test.each([
 	['<style>p { color: red; }</style>', '<style>'],
 	['<p style="color: red">Red.</p>', '<p style="color: red">'],
+	['<p/style="color: red">Red.</p>', '<p/style="color: red">'],
+	['<p title="x"style="color: red">Red.</p>', '<p title="x"style="color: red">'],
 	['<script>const slots = "{launch.date}";</script>', '<script>'],
 	['<script type="module">copy();</script>', '<script type="module">'],
 	['<button onclick="copy()">Copy</button>', '<button onclick="copy()">'],

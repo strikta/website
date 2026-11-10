@@ -1,4 +1,5 @@
 ---
+import { DRAFT } from '../navigation.ts';
 import { exportedText, exportedVersion } from '../quote.ts';
 import { legalText } from '../../tool/legal.ts';
 import Block from './Block.astro';
@@ -11,7 +12,7 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 ---
 <article class:list={['legal', { indexed: parts.length > 1 }]}>
 	<h1>{title}</h1>
-	{draft && <Callout label="Status"><p><strong>Draft, not in force:</strong> Strikta Pro is not on sale.</p></Callout>}
+	{draft && <Callout label="Status"><p><strong>{DRAFT}:</strong> Strikta Pro is not on sale.</p></Callout>}
 	{!draft && version !== undefined && <p class="version">Version {version}</p>}
 	{parts.length > 1 && (
 		<nav class="toc" aria-label="Contents">

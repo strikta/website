@@ -18,7 +18,7 @@ const exportSchema = zod
 					sha256,
 					source: zod.union([zod.object({ file: zod.string(), clause: zod.string().optional() }).strict(), zod.object({ kind: zod.literal('decided-copy') }).strict()]),
 					pages: zod.array(zod.string().startsWith('/')),
-					fills: zod.record(zod.string(), zod.string()).default({})
+					fills: zod.record(zod.string().min(1), zod.string()).default({})
 				})
 				.strict()
 		)

@@ -30,3 +30,9 @@ test('no export yet loads as undefined', () => {
 	expect(loadExport(`${tree.directory}/content/export`)).toBeUndefined();
 	tree.remove();
 });
+
+test('an export that fills an empty placeholder does not load', () => {
+	const tree = workspace(syntheticExport({}, [{ id: 'synthetic-start', text: 'From [start] on.', pages: ['/'], fills: { '': 'launch.date' } }]));
+	expect(() => loadExport(`${tree.directory}/content/export`)).toThrow('Too small');
+	tree.remove();
+});

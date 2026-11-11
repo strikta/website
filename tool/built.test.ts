@@ -259,3 +259,21 @@ test('no other page may show the placeholders and price figures of a draft legal
 	const found = fixes({ ...draftExport, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(draftBody), 'dist/legal/index.html': page('<main><p>Starts on 2030-01-10.</p><p>Until [end date], €99.</p></main>') });
 	expect(found).toEqual(['placeholder: unfilled slot or placeholder', 'price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
 });
+
+test('a quote that needs a note passes only with the note after it in the same section', () => {
+	const headline = '<h1><span data-quote="home-headline">ZZZ headline.</span></h1>';
+	const note = '<p class="qualifier" data-note="hermes" data-astro-cid-zzz>ZZZ note.</p>';
+	const flagged = 'note: quote "home-headline" is shown without its "hermes" note after it in the same section';
+	expect(fixes({ 'dist/index.html': page(`<main><section>${headline}<p>Lead.</p>${note}</section></main>`) })).toEqual([]);
+	expect(fixes({ 'dist/index.html': page(`<main><section>${headline}<p>Lead.</p></section></main>`) })).toEqual([flagged]);
+	expect(fixes({ 'dist/index.html': page(`<main><section>${headline}</section><section>${note}</section></main>`) })).toEqual([flagged]);
+	expect(fixes({ 'dist/index.html': page(`<main><section>${note}${headline}</section></main>`) })).toEqual([flagged]);
+	expect(fixes({ 'dist/index.html': page(`<main><section>${headline}<p data-note="hermes"></p></section></main>`) })).toEqual([flagged]);
+});
+
+test('a legal line with escaped marks passes when the page shows the marks without their backslashes', () => {
+	const exported = syntheticExport({ 'legal/trademarks.md': '# Synthetic form\n\n- I/We (\\*) withdraw.\n\n(\\*) Delete as appropriate.\n' }, quotes);
+	const shown = '<h1>Synthetic form</h1><ul><li>I/We (*) withdraw.</li></ul><p>(*) Delete as appropriate.</p>';
+	expect(fixes({ ...exported, 'data/stage.yaml': legalStage, 'dist/legal/trademarks/index.html': legalPage(shown) })).toEqual([]);
+	expect(fixes({ ...exported, 'data/stage.yaml': legalStage, 'dist/legal/trademarks/index.html': legalPage(shown.replaceAll('(*)', '(\\*)')) })).toHaveLength(2);
+});

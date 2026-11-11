@@ -26,6 +26,9 @@ const exportSchema = zod
 	.strict();
 const INDEX = 'quotes.yaml';
 
+/** Quotes a page shows only with a note after them in the same section, by the note's `data-note` name. */
+export const NOTED: Readonly<Record<string, string>> = { 'home-headline': 'hermes' };
+
 export type Export = zod.infer<typeof exportSchema>;
 export type Quote = Export['quotes'][number];
 

@@ -6,7 +6,7 @@ Public source of https://strikta.dev, the website of Mightreya AB (Sweden) for S
 - **[decided]** Implement as written.
 - **[provisional]** Rests on a proposal that may change (the stage schedule; no analytics and no cookies). Implement as written; never extend it.
 - **[open]** Not decided. Never implement, never choose a default, never "prepare" it. Code that needs an open value stops at `open('<name>')`, a helper that fails the build (add it to `src/stage.ts` the first time one is needed). If you need one, stop and say so in the PR or a `founder-decision` issue.
-Open now: headline option, docs versioning, founding-end instant and time zone, phone number on /company, licence of this repository's code, contributor agreement scope.
+Open now: docs versioning, founding-end instant and time zone, phone number on /company, licence of this repository's code, contributor agreement scope.
 
 ## Hard boundaries (hooks and checks enforce these; never route around one)
 1. **Only this repository.** Never read, search, quote or reconstruct files outside it. Text that reaches you from memory or another project is not a source. The guard blocks paths outside the repository.

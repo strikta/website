@@ -5,9 +5,11 @@ import { legal, stagedLinks, type LegalPage } from '../../navigation.ts';
 
 type Props = { entry: LegalPage };
 
-/** One page for each legal text the current stage builds. */
+/** One page under /legal for each legal text the current stage builds there. */
 export function getStaticPaths(): readonly { params: { page: string }; props: Props }[] {
-	const paths = stagedLinks(legal).map((entry) => ({ params: { page: entry.route.replace('/legal/', '') }, props: { entry } }));
+	const paths = stagedLinks(legal)
+		.filter((entry) => entry.route.startsWith('/legal/'))
+		.map((entry) => ({ params: { page: entry.route.replace('/legal/', '') }, props: { entry } }));
 	return paths;
 }
 

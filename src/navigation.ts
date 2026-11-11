@@ -45,6 +45,9 @@ export const DRAFT = 'Draft, not in force';
 /** The security policy, an exported legal text on its own page. */
 export const security: LegalPage = { route: '/security', label: 'Security', file: 'legal/security.md', draft: false };
 
+/** The statutory withdrawal page, an exported legal text on its own page and listed with the legal texts. */
+export const withdraw: LegalPage = { route: '/withdraw', label: 'Withdraw from a purchase', file: 'legal/withdraw.md', draft: true };
+
 export const help: readonly Link[] = [
 	{ route: '/support', label: 'Support' },
 	security,
@@ -54,6 +57,7 @@ export const help: readonly Link[] = [
 export const legal: readonly LegalPage[] = [
 	{ route: '/legal/licence-terms', label: 'Licence Terms', file: 'legal/licence-terms.md', draft: true },
 	{ route: '/legal/refund-policy', label: 'Refund policy', file: 'legal/refund-policy.md', draft: true },
+	withdraw,
 	{ route: '/legal/privacy', label: 'Privacy notice', file: 'legal/privacy.md', draft: false },
 	{ route: '/legal/trademarks', label: 'Trademarks', file: 'legal/trademarks.md', draft: false },
 	{ route: '/legal/support-period', label: 'Support period', file: 'legal/support-period.md', draft: true },

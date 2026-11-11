@@ -28,7 +28,7 @@ const linked = staged('/docs'); // link only to pages the stage builds
 An exported quote that belongs to a section the current stage does not show is listed under `withheld` in `data/stage.yaml`, so `npm run test:built` does not look for it.
 
 ## Legal page
-`src/pages/legal/[page].astro` builds one page for each staged entry of `legal` in `src/navigation.ts`, rendered by `src/components/Legal.astro` from `exportedText(file)`, which fills the placeholders the export maps to slots. Legal text never goes through Markdown: Markdown would change typography and line joins. `tool/legal.ts` splits the file on its `##` headings and keeps every clause line as it is; only list items (`- `), table rows (`| … |`) and the file's own `**strong**` and `` `code` `` runs become markup, through `Block.astro` and `Clause.astro`, as escaped text.
+`src/pages/legal/[page].astro` builds one page for each staged entry of `legal` in `src/navigation.ts` under `/legal/`; an entry elsewhere, such as `/withdraw`, has its own page file, like `/security`. Each is rendered by `src/components/Legal.astro` from `exportedText(file)`, which fills the placeholders the export maps to slots. Legal text never goes through Markdown: Markdown would change typography and line joins. `tool/legal.ts` splits the file on its `##` headings and keeps every clause line as it is; only list items (`- `), table rows (`| … |`) and the file's own `**strong**` and `` `code` `` runs become markup, through `Block.astro` and `Clause.astro`, as escaped text; a backslash-escaped mark such as `\*` shows without its backslash.
 ```astro
 ---
 import Legal from '../../components/Legal.astro';

@@ -5,6 +5,14 @@ import Logo from '../components/Logo.astro';
 import Quote from '../components/Quote.astro';
 import Page from '../layouts/Page.astro';
 import { enquiry } from '../navigation.ts';
+const sections = [
+	{ name: 'system', range: '0–222' },
+	{ name: 'rules', range: '223–1206' },
+	{ name: 'profile', range: '1207–1530' },
+	{ name: 'retrieved', range: '1531–3410' },
+	{ name: 'conversation', range: '3411–4602' },
+	{ name: 'message', range: '4603–4790' }
+];
 const egress = [
 	{ stays: 'The memory store, the audit log, the configuration', sent: 'Every stored turn\'s text, to the generation provider you configure (Gemini by default), for extraction and consolidation' },
 	{ stays: 'Embeddings of your messages (local multilingual E5 model)', sent: 'The current message, for some model calls such as temporal query decomposition' },
@@ -25,12 +33,7 @@ const egress = [
 			<p class="platform muted prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
 		</div>
 		<div class="window" aria-hidden="true">
-			<div class="row"></div>
-			<div class="row"></div>
-			<div class="row"></div>
-			<div class="row"></div>
-			<div class="row"></div>
-			<div class="row"></div>
+			{sections.map((section) => <div class="row"><span>{section.name}</span><span class="range">{section.range}</span></div>)}
 		</div>
 	</section>
 
@@ -88,7 +91,6 @@ const egress = [
 		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
 		gap: var(--s-space-7) var(--s-gutter);
 		align-items: end;
-		min-block-size: min(100svh, 72rem);
 		margin: calc(-1 * var(--s-space-8)) calc(-1 * var(--s-margin)) 0;
 		padding: var(--s-space-10) var(--s-margin) var(--s-space-9);
 		border-block: var(--s-space-6) solid var(--s-color-paper);
@@ -128,35 +130,24 @@ const egress = [
 		font-size: var(--s-text-sm);
 	}
 	.window {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-space-2);
-		block-size: calc(var(--s-text-display) * 4);
+		--row: clamp(28px, 2.6vw, 96px);
+		display: grid;
+		gap: calc(var(--row) / 2);
 		animation: build var(--s-duration-scene) steps(6, end) both;
 	}
 	.row {
-		flex: 1 1 0;
-		min-block-size: var(--s-space-2);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--s-space-3);
+		block-size: var(--row);
+		padding: 0 var(--s-space-3);
 		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+		font-size: clamp(12px, 0.9vw, 28px);
 	}
-	/* Each section of an example window, in render order, takes a height in proportion to its length in bytes. */
-	.row:nth-child(1) {
-		flex-grow: 223;
-	}
-	.row:nth-child(2) {
-		flex-grow: 984;
-	}
-	.row:nth-child(3) {
-		flex-grow: 324;
-	}
-	.row:nth-child(4) {
-		flex-grow: 1880;
-	}
-	.row:nth-child(5) {
-		flex-grow: 1192;
-	}
-	.row:nth-child(6) {
-		flex-grow: 188;
+	.range {
+		font-family: var(--s-font-mono);
 	}
 	@media (min-width: 64rem) {
 		.title {
@@ -193,11 +184,6 @@ const egress = [
 	@media (prefers-color-scheme: dark) {
 		.intro {
 			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
-		}
-	}
-	@media print {
-		.intro {
-			min-block-size: auto;
 		}
 	}
 	.note {

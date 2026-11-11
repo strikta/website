@@ -1,11 +1,12 @@
 ---
 import { header, stagedLinks } from '../navigation.ts';
+import Logo from './Logo.astro';
 const links = stagedLinks(header);
 const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 ---
 <header class="header">
 	<div class="bar">
-		<a class="wordmark" href="/" aria-label="Strikta, home">strikta</a>
+		<a class="home" href="/" aria-label="Strikta, home"><Logo art="lockup" class="lockup" /></a>
 		<nav class="wide" aria-label="Main">
 			<ul>
 				{links.map((link) => <li><a href={link.route} aria-current={link.route === current ? 'page' : undefined}>{link.label}</a></li>)}
@@ -37,21 +38,15 @@ const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
 		min-block-size: 4rem;
 		padding-inline: var(--s-margin);
 	}
-	.wordmark {
+	.home {
 		display: inline-flex;
 		align-items: center;
 		min-block-size: var(--s-target);
 		color: var(--s-color-ink);
-		font-family: var(--s-font-mono);
-		font-size: var(--s-text-lg);
-		font-weight: 500;
-		text-decoration: none;
 	}
-	.wordmark::before {
-		content: '[';
-	}
-	.wordmark::after {
-		content: ']';
+	.home :global(.lockup) {
+		block-size: 1.25rem;
+		inline-size: auto;
 	}
 	ul {
 		display: flex;

@@ -28,3 +28,11 @@ test('space, lines, radius, target, prose width and the column count and card sp
 	expect(style).toContain('@media (min-width: 64rem) {\n:root {\n\t--s-columns: 12;\n\t--s-card-span: 4;\n}');
 	expect(style).toContain('@media (min-width: 160rem) {\n:root {\n\t--s-columns: 16;\n\t--s-card-span: 5;\n}');
 });
+
+test('the display headline, the system angle, the grain and the motion timings are set', () => {
+	expect(style).toContain('--s-display-weight: 400;\n\t--s-display-tracking: -0.035em;\n\t--s-display-leading: 0.95;\n\t--s-display-opsz: 32;');
+	expect(style).toContain('--s-angle: 9.4623deg;');
+	expect(style).toContain("--s-grain-opacity: 0.05;\n\t--s-grain-tile: url('/brand/grain.png');");
+	expect(style).toContain('--s-duration-base: 240ms;\n\t--s-duration-scene: 600ms;');
+	expect(style).toContain('--s-ease: cubic-bezier(0.2, 0, 0, 1);');
+});

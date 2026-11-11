@@ -1,9 +1,18 @@
 ---
 import Button from '../components/Button.astro';
 import Card from '../components/Card.astro';
+import Logo from '../components/Logo.astro';
 import Quote from '../components/Quote.astro';
 import Page from '../layouts/Page.astro';
 import { enquiry } from '../navigation.ts';
+const sections = [
+	{ name: 'system', range: '0–222' },
+	{ name: 'rules', range: '223–1206' },
+	{ name: 'profile', range: '1207–1530' },
+	{ name: 'retrieved', range: '1531–3410' },
+	{ name: 'conversation', range: '3411–4602' },
+	{ name: 'message', range: '4603–4790' }
+];
 const egress = [
 	{ stays: 'The memory store, the audit log, the configuration', sent: 'Every stored turn\'s text, to the generation provider you configure (Gemini by default), for extraction and consolidation' },
 	{ stays: 'Embeddings of your messages (local multilingual E5 model)', sent: 'The current message, for some model calls such as temporal query decomposition' },
@@ -11,15 +20,21 @@ const egress = [
 ];
 ---
 <Page description="Strikta is an open-source context engine for LLM agents, with Strikta Pro, a Console for what your agent sees.">
-	<section class="intro scheme-dark" aria-labelledby="name">
-		<h1 id="name"><Quote id="home-headline" /></h1>
-		<p class="lead prose">Strikta is an open-source context engine for LLM agents. It keeps every turn verbatim and rebuilds the whole context window before each turn, from that history and the facts derived from it. The model is never asked whether to search. The inspector shows why each item is in the window.</p>
-		<p class="qualifier muted prose" data-note="hermes">On Hermes, Hermes still compacts its own saved transcript; Strikta journals every request so you can see when its summary reaches the model.</p>
-		<div class="actions">
-			<Button href="/how-it-works">How it works</Button>
-			<Button href="/pro" quiet>Strikta Pro</Button>
+	<section class="intro scheme-dark s-brand-moment" aria-labelledby="name">
+		<div class="title">
+			<Logo art="mark" class="mark"><path class="slit" d="M12.5 0L15.5 0L11.5 24L8.5 24Z" /></Logo>
+			<h1 id="name"><Quote id="home-headline" /></h1>
+			<p class="lead prose">Strikta is an open-source context engine for LLM agents. It keeps every turn verbatim and rebuilds the whole context window before each turn, from that history and the facts derived from it. The model is never asked whether to search. The inspector shows why each item is in the window.</p>
+			<p class="qualifier muted prose" data-note="hermes">On Hermes, Hermes still compacts its own saved transcript; Strikta journals every request so you can see when its summary reaches the model.</p>
+			<div class="actions">
+				<Button href="/how-it-works">How it works</Button>
+				<Button href="/pro" quiet>Strikta Pro</Button>
+			</div>
+			<p class="platform muted prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
 		</div>
-		<p class="platform muted prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
+		<div class="window" aria-hidden="true">
+			{sections.map((section) => <div class="row"><span>{section.name}</span><span class="range">{section.range}</span></div>)}
+		</div>
 	</section>
 
 	<section aria-labelledby="inspect">
@@ -72,16 +87,37 @@ const egress = [
 </Page>
 <style>
 	.intro {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-7) var(--s-gutter);
+		align-items: end;
 		margin: calc(-1 * var(--s-space-8)) calc(-1 * var(--s-margin)) 0;
 		padding: var(--s-space-10) var(--s-margin) var(--s-space-9);
-		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
-		background: var(--s-color-paper);
-		color: var(--s-color-ink);
+		border-block: var(--s-space-6) solid var(--s-color-paper);
+	}
+	.title,
+	.window {
+		grid-column: 1 / -1;
+	}
+	.intro :global(.mark) {
+		inline-size: var(--s-text-display);
+		margin-block-end: var(--s-space-6);
+	}
+	/* The stroke overlaps both blocks so no anti-aliased seam shows while the slit is closed. */
+	.slit {
+		stroke: currentColor;
+		stroke-width: 0.5;
+		visibility: hidden;
+		animation: slit var(--s-duration-base) steps(2, end) var(--s-duration-scene) backwards;
 	}
 	.intro h1 {
+		max-inline-size: 14ch;
 		margin-block-end: var(--s-space-7);
 		font-size: var(--s-text-display);
-		line-height: var(--s-leading-tight);
+		font-weight: var(--s-display-weight);
+		font-variation-settings: 'opsz' var(--s-display-opsz);
+		letter-spacing: var(--s-display-tracking);
+		line-height: var(--s-display-leading);
 	}
 	.intro .qualifier {
 		margin-block-start: var(--s-space-5);
@@ -92,6 +128,63 @@ const egress = [
 	.intro .platform {
 		margin-block: 0;
 		font-size: var(--s-text-sm);
+	}
+	.window {
+		--row: clamp(28px, 2.6vw, 96px);
+		display: grid;
+		gap: calc(var(--row) / 2);
+		animation: build var(--s-duration-scene) steps(6, end) both;
+	}
+	.row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--s-space-3);
+		block-size: var(--row);
+		padding: 0 var(--s-space-3);
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+		font-size: clamp(12px, 0.9vw, 28px);
+	}
+	.range {
+		font-family: var(--s-font-mono);
+	}
+	@media (min-width: 64rem) {
+		.title {
+			grid-column: span 7;
+		}
+		.window {
+			grid-column: span 5;
+		}
+	}
+	@media (min-width: 160rem) {
+		.title {
+			grid-column: span 10;
+		}
+		.window {
+			grid-column: span 6;
+		}
+	}
+	@keyframes build {
+		from {
+			clip-path: inset(0 0 100% 0);
+		}
+		to {
+			clip-path: inset(0);
+		}
+	}
+	@keyframes slit {
+		from {
+			visibility: visible;
+		}
+		to {
+			visibility: hidden;
+		}
+	}
+	@media (prefers-color-scheme: dark) {
+		.intro {
+			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		}
 	}
 	.note {
 		margin-block-start: var(--s-space-5);

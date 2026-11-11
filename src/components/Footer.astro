@@ -2,6 +2,7 @@
 import { help, legal, product, stagedLinks } from '../navigation.ts';
 import { slot, slots } from '../slot.ts';
 import Disclosure from './Disclosure.astro';
+import Logo from './Logo.astro';
 const columns = [
 	{ title: 'Product', links: stagedLinks(product) },
 	{ title: 'Help', links: stagedLinks(help) },
@@ -9,8 +10,9 @@ const columns = [
 ];
 const company = slot(slots, 'company.name');
 ---
-<footer class="footer">
+<footer class="footer scheme-dark s-brand-moment">
 	<div class="inner">
+		<Logo art="lockup" class="lockup" />
 		<div class="columns">
 			{columns.map((column) => (
 				<nav aria-label={column.title}>
@@ -30,7 +32,16 @@ const company = slot(slots, 'company.name');
 <style>
 	.footer {
 		margin-block-start: var(--s-space-10);
-		border-block-start: var(--s-line-hair) solid var(--s-color-rule);
+		border-block-start: var(--s-space-6) solid var(--s-color-paper);
+	}
+	@media (prefers-color-scheme: dark) {
+		.footer {
+			border-block-start: var(--s-line-hair) solid var(--s-color-rule);
+		}
+	}
+	.inner :global(.lockup) {
+		block-size: 1.5rem;
+		inline-size: auto;
 	}
 	.inner {
 		display: grid;

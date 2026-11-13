@@ -1,0 +1,114 @@
+---
+import { header, stagedLinks } from '../navigation.ts';
+import Logo from './Logo.astro';
+const links = stagedLinks(header);
+const current = Astro.url.pathname.replace(/\/$/u, '') || '/';
+---
+<header class="header">
+	<div class="bar">
+		<a class="home" href="/" aria-label="Strikta, home"><Logo art="lockup" class="lockup" /></a>
+		<nav class="wide" aria-label="Main">
+			<ul>
+				{links.map((link) => <li><a href={link.route} aria-current={link.route === current ? 'page' : undefined}>{link.label}</a></li>)}
+			</ul>
+		</nav>
+		<details class="menu">
+			<summary>Menu</summary>
+			<nav aria-label="Main">
+				<ul>
+					{links.map((link) => <li><a href={link.route} aria-current={link.route === current ? 'page' : undefined}>{link.label}</a></li>)}
+				</ul>
+			</nav>
+		</details>
+	</div>
+</header>
+<style>
+	.header {
+		position: sticky;
+		inset-block-start: 0;
+		z-index: 1;
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		background: var(--s-color-paper);
+	}
+	.bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--s-space-5);
+		min-block-size: 4rem;
+		padding-inline: var(--s-margin);
+	}
+	.home {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+		color: var(--s-color-ink);
+	}
+	.home :global(.lockup) {
+		block-size: 1.25rem;
+		inline-size: auto;
+	}
+	ul {
+		display: flex;
+		gap: var(--s-space-6);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	nav a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+		color: var(--s-color-ink);
+		text-decoration: none;
+	}
+	nav a:hover {
+		text-decoration: underline;
+		text-decoration-thickness: var(--s-line-hair);
+		text-underline-offset: 0.35em;
+	}
+	nav a[aria-current='page'] {
+		text-decoration: underline;
+		text-decoration-thickness: var(--s-line-strong);
+		text-underline-offset: 0.35em;
+	}
+	.menu {
+		display: none;
+	}
+	@media (max-width: 39.99rem) {
+		.wide {
+			display: none;
+		}
+		.menu {
+			display: block;
+		}
+		summary {
+			display: flex;
+			align-items: center;
+			min-block-size: var(--s-target);
+			padding-inline: var(--s-space-4);
+			border: var(--s-line-hair) solid var(--s-color-muted);
+			cursor: pointer;
+		}
+		.menu[open] summary {
+			background: var(--s-color-ink);
+			color: var(--s-color-paper);
+		}
+		.menu[open] nav {
+			position: absolute;
+			inset-inline: 0;
+			inset-block-start: 4rem;
+			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+			background: var(--s-color-paper);
+		}
+		.menu ul {
+			flex-direction: column;
+			gap: 0;
+		}
+		.menu a {
+			inline-size: 100%;
+			min-block-size: 3rem;
+			padding-inline: var(--s-margin);
+		}
+	}
+</style>

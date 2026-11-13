@@ -1,0 +1,34 @@
+---
+import Page from '../layouts/Page.astro';
+const lineage = [
+	'Howard, M. W., and Kahana, M. J. (2002). A distributed representation of temporal context. Journal of Mathematical Psychology, 46(3), 269–299.',
+	'Anderson, J. R., and Lebiere, C. (1998). The Atomic Components of Thought (ACT-R). Lawrence Erlbaum Associates.',
+	'Hintzman, D. L. (1984). MINERVA 2: A simulation model of human memory. Behavior Research Methods, Instruments, and Computers, 16(2), 96–101.',
+	'McClelland, J. L., McNaughton, B. L., and O\'Reilly, R. C. (1995). Why there are complementary learning systems in the hippocampus and neocortex. Psychological Review, 102(3), 419–457.',
+	'Bjork, R. A., and Bjork, E. L. (1992). A new theory of disuse and an old theory of stimulus fluctuation. In A. F. Healy, S. M. Kosslyn and R. M. Shiffrin (Eds.), From Learning Processes to Cognitive Processes, Vol. 2, 35–67. Lawrence Erlbaum Associates.'
+];
+---
+<Page title="How it works" description="How Strikta rebuilds the context window before every turn, what your agent's runtime still does, and what has and has not been measured.">
+	<h1>How Strikta works</h1>
+	<div class="prose">
+		<p class="lead">Strikta is an open-source context engine for LLM agents. It keeps every turn verbatim and rebuilds the whole context window before each turn, from that history and the facts derived from it. The model is never asked whether to search. The inspector shows why each item is in the window.</p>
+
+		<h2>What your agent's runtime still does</h2>
+		<p>On Hermes, Hermes still compacts its own saved transcript; Strikta journals every request so you can see when its summary reaches the model.</p>
+		<p>On OpenClaw, the plugin has no summariser, and OpenClaw still enforces its prompt budget. When a view runs over that budget, older exchanges drop out of what the model sees first; they stay in the store, and retrieval can bring them back. The plugin supports OpenClaw 2026.9.33 and 2026.10.7; on an older OpenClaw it stays inactive and OpenClaw's own compaction runs.</p>
+
+		<h2>Where the ideas come from</h2>
+		<p>The engine's design cites these models of human memory. Citing them is not a claim that Strikta reproduces them.</p>
+		<ul class="citations">
+			{lineage.map((reference) => <li>{reference}</li>)}
+		</ul>
+
+		<h2>What is and isn't measured</h2>
+		<p>No ablation has been published, so we do not claim that any single mechanism above improves results. One cited mechanism, MINERVA-style cubing, does not take effect with the default E5 embeddings. Multilingual quality has not been measured. No measurement of Strikta has been published yet.</p>
+	</div>
+</Page>
+<style>
+	.citations li {
+		margin-block-end: var(--s-space-3);
+	}
+</style>

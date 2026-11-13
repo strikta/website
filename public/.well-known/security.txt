@@ -1,0 +1,5 @@
+Contact: mailto:security@strikta.dev
+Expires: 2027-10-31T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://strikta.dev/.well-known/security.txt
+Policy: https://strikta.dev/security

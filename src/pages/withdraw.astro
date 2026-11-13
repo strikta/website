@@ -1,0 +1,8 @@
+---
+import Legal from '../components/Legal.astro';
+import Page from '../layouts/Page.astro';
+import { withdraw } from '../navigation.ts';
+---
+<Page title={withdraw.label} description="How to withdraw from a purchase of Strikta Pro, with the model withdrawal form.">
+	<Legal file={withdraw.file} draft={withdraw.draft} />
+</Page>

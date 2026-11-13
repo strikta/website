@@ -1,0 +1,21 @@
+---
+import type { Block } from '../../tool/legal.ts';
+import Clause from './Clause.astro';
+type Props = { block: Block };
+const { block } = Astro.props;
+---
+{block.kind === 'paragraph' && <p><Clause line={block.line} /></p>}
+{block.kind === 'list' && <ul>{block.items.map((item) => <li><Clause line={item} /></li>)}</ul>}
+{block.kind === 'table' && (
+	<div class="scroll" role="region" aria-label="Table" tabindex="0">
+		<table>
+			<thead><tr>{block.head.map((cell) => <th scope="col"><Clause line={cell} /></th>)}</tr></thead>
+			<tbody>{block.rows.map((row) => <tr>{row.map((cell) => <td><Clause line={cell} /></td>)}</tr>)}</tbody>
+		</table>
+	</div>
+)}
+<style>
+	.scroll {
+		overflow-x: auto;
+	}
+</style>

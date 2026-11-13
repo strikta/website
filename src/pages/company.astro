@@ -1,0 +1,54 @@
+---
+import Page from '../layouts/Page.astro';
+import { slot, slots } from '../slot.ts';
+const facts = [
+	{ term: 'Company', detail: slot(slots, 'company.name') },
+	{ term: 'Organisation number', detail: slot(slots, 'company.org_no') },
+	{ term: 'VAT number', detail: slot(slots, 'company.vat_no') },
+	{ term: 'Registered office', detail: `${slot(slots, 'company.seat')}, ${slot(slots, 'company.country')}` },
+	{ term: 'Postal address', detail: slot(slots, 'company.postal_address') }
+];
+const contacts = [
+	{ term: 'Support', address: slot(slots, 'company.email.support') },
+	{ term: 'Company licence', address: slot(slots, 'company.email.licensing') },
+	{ term: 'Security reports', address: slot(slots, 'company.email.security') },
+	{ term: 'Legal and privacy', address: slot(slots, 'company.email.legal') }
+];
+---
+<Page title="Company and contact" description="Mightreya AB, the company behind Strikta and Strikta Pro, and how to reach it.">
+	<h1>Company and contact</h1>
+	<div class="prose">
+		<p>Strikta and Strikta Pro are made by {slot(slots, 'company.name')}, a Swedish limited company.</p>
+		<dl>
+			{facts.map((fact) => <div><dt>{fact.term}</dt><dd>{fact.detail}</dd></div>)}
+		</dl>
+		<h2>Email</h2>
+		<dl>
+			{contacts.map((contact) => <div><dt>{contact.term}</dt><dd><a href={`mailto:${contact.address}`}>{contact.address}</a></dd></div>)}
+		</dl>
+	</div>
+</Page>
+<style>
+	dl {
+		margin: 0;
+	}
+	dl div {
+		padding-block: var(--s-space-3);
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+	}
+	dt {
+		color: var(--s-color-muted);
+		font-size: var(--s-text-xs);
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	dd {
+		margin: 0;
+	}
+	dd a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--s-target);
+	}
+</style>

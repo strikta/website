@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse } from 'yaml';
+import { parse, parseDocument } from 'yaml';
 import * as zod from 'zod';
-import { slot, type Slots } from './slot.ts';
+import { optionalSlot, slot, slots, type Slots } from './slot.ts';
 
 const sha256 = zod.string().regex(/^[0-9a-f]{64}$/u);
 const exportSchema = zod
@@ -18,25 +18,85 @@ const exportSchema = zod
 					sha256,
 					source: zod.union([zod.object({ file: zod.string(), clause: zod.string().optional() }).strict(), zod.object({ kind: zod.literal('decided-copy') }).strict()]),
 					pages: zod.array(zod.string().startsWith('/')),
-					fills: zod.record(zod.string(), zod.string()).default({})
+					fills: zod.record(zod.string().min(1), zod.string()).default({})
 				})
 				.strict()
 		)
 	})
 	.strict();
+const INDEX = 'quotes.yaml';
+
+/** Quotes a page shows only with a note after them in the same section, by the note's `data-note` name. */
+export const NOTED: Readonly<Record<string, string>> = { 'home-headline': 'hermes' };
 
 export type Export = zod.infer<typeof exportSchema>;
 export type Quote = Export['quotes'][number];
 
+// Builds run from the repository root; import.meta.url points into the bundle, so never resolve data from it.
+const exportDirectory = join(process.cwd(), 'content', 'export');
+const exported = loadExport(exportDirectory);
+
 /** The generated export in a directory such as `content/export/`, or undefined before the first export. */
 export function loadExport(directory: string): Export | undefined {
-	const path = join(directory, 'quotes.yaml');
-	const exported = existsSync(path) ? exportSchema.parse(parse(readFileSync(path, 'utf8'))) : undefined;
-	return exported;
+	const path = join(directory, INDEX);
+	const loaded = existsSync(path) ? exportSchema.parse(parse(readFileSync(path, 'utf8'))) : undefined;
+	return loaded;
 }
 
-/** A quote's text with each placeholder replaced by the slot the export maps it to. */
-export function filledText(quote: Quote, slots: Slots): string {
-	const filled = Object.entries(quote.fills).reduce((text, [placeholder, name]) => text.replaceAll(placeholder, slot(slots, name)), quote.text);
+/** Why a `quotes.yaml` text does not parse as an export; empty when it does. */
+export function exportProblems(text: string): readonly string[] {
+	const document = parseDocument(text);
+	const syntax = document.errors.map((error) => error.message);
+	const parsed = syntax.length > 0 ? undefined : exportSchema.safeParse(document.toJS());
+	const schema = parsed === undefined || parsed.success ? [] : parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
+	const problems = [...syntax, ...schema];
+	return problems;
+}
+
+/** A quote's text with each placeholder replaced by the slot the export maps it to; a draft keeps the placeholders no slot fills yet. */
+export function filledText(entry: Quote, filling: Slots, draft?: boolean): string {
+	const filled = fill(entry.text, Object.entries(entry.fills), filling, draft);
+	return filled;
+}
+
+/** The decided text of an exported quote, filled from the slots; a missing quote fails the build. */
+export function quote(identifier: string): string {
+	const entry = exported?.quotes.find((candidate) => candidate.id === identifier);
+	if (entry === undefined) {
+		throw new Error(`No exported quote "${identifier}": a new export is needed; never write the text here.`);
+	}
+	const filled = filledText(entry, slots);
+	return filled;
+}
+
+/** An exported file's text with every placeholder that its quotes map to a slot filled in; a draft keeps the unfilled ones. */
+export function exportedText(path: string, draft?: boolean): string {
+	if (exported?.files.some((file) => file.path === path) !== true) {
+		throw new Error(`No exported file "${path}": a new export is needed.`);
+	}
+	const text = filledFile(exported, path, readFileSync(join(exportDirectory, path), 'utf8'), slots, draft);
+	return text;
+}
+
+/** An exported file's content with every placeholder its quotes map to a slot filled in; a draft keeps the unfilled ones. */
+export function filledFile(index: Export, path: string, content: string, filling: Slots, draft?: boolean): string {
+	const fills = index.quotes.filter((entry) => 'file' in entry.source && entry.source.file === path).flatMap((entry) => Object.entries(entry.fills));
+	const filled = fill(content, fills, filling, draft);
+	return filled;
+}
+
+/** The version an exported file's title states, if any. */
+export function exportedVersion(path: string): string | undefined {
+	const version = exported?.files.find((file) => file.path === path)?.version;
+	return version;
+}
+
+/** Text with each placeholder replaced by its slot; an unfilled slot fails the build, except in a draft, which shows the placeholder as exported. */
+function fill(text: string, fills: readonly (readonly [string, string])[], filling: Slots, draft?: boolean): string {
+	const filled = fills.reduce((current, [placeholder, name]) => {
+		const value = draft === true ? (optionalSlot(filling, name) ?? placeholder) : slot(filling, name);
+		const replaced = current.replaceAll(placeholder, value);
+		return replaced;
+	}, text);
 	return filled;
 }

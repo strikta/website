@@ -1,0 +1,200 @@
+---
+import Button from '../components/Button.astro';
+import Card from '../components/Card.astro';
+import Logo from '../components/Logo.astro';
+import Quote from '../components/Quote.astro';
+import Page from '../layouts/Page.astro';
+import { enquiry } from '../navigation.ts';
+const sections = [
+	{ name: 'system', range: '0–222' },
+	{ name: 'rules', range: '223–1206' },
+	{ name: 'profile', range: '1207–1530' },
+	{ name: 'retrieved', range: '1531–3410' },
+	{ name: 'conversation', range: '3411–4602' },
+	{ name: 'message', range: '4603–4790' }
+];
+const egress = [
+	{ stays: 'The memory store, the audit log, the configuration', sent: 'Every stored turn\'s text, to the generation provider you configure (Gemini by default), for extraction and consolidation' },
+	{ stays: 'Embeddings of your messages (local multilingual E5 model)', sent: 'The current message, for some model calls such as temporal query decomposition' },
+	{ stays: 'No telemetry: Strikta and Strikta Pro upload nothing to us', sent: 'Pro alert notices, only if you turn them on, to the destination you choose; never memory content' }
+];
+---
+<Page description="Strikta is an open-source context engine for LLM agents, with Strikta Pro, a Console for what your agent sees.">
+	<section class="intro scheme-dark s-brand-moment" aria-labelledby="name">
+		<div class="title">
+			<Logo art="mark" class="mark"><path class="slit" d="M12.5 0L15.5 0L11.5 24L8.5 24Z" /></Logo>
+			<h1 id="name"><Quote id="home-headline" /></h1>
+			<p class="lead prose">Strikta is an open-source context engine for LLM agents. It keeps every turn verbatim and rebuilds the whole context window before each turn, from that history and the facts derived from it. The model is never asked whether to search. The inspector shows why each item is in the window.</p>
+			<p class="qualifier muted prose" data-note="hermes">On Hermes, Hermes still compacts its own saved transcript; Strikta journals every request so you can see when its summary reaches the model.</p>
+			<div class="actions">
+				<Button href="/how-it-works">How it works</Button>
+				<Button href="/pro" quiet>Strikta Pro</Button>
+			</div>
+			<p class="platform muted prose">Open source under AGPL-3.0. Self-hosted with Docker Compose. Linux and macOS; Windows only through WSL2. The source code opens with the first release.</p>
+		</div>
+		<div class="window" aria-hidden="true">
+			{sections.map((section) => <div class="row"><span>{section.name}</span><span class="range">{section.range}</span></div>)}
+		</div>
+	</section>
+
+	<section aria-labelledby="inspect">
+		<h2 id="inspect">Inspect it, replay it, keep it on your machine</h2>
+		<div class="grid">
+			<Card title="Every turn has a record">
+				<p>By default, each assembly writes an audit record: every memory the turn considered, served or not, its score terms and the stage that dropped it, plus timings. In the default mode the record holds hashes and counts, not your text. Records stay on your machine.</p>
+			</Card>
+			<Card title="Replay a turn">
+				<p>Replay assembles a past turn again, optionally as of an earlier time or with changed settings, as a dry run: nothing is stored. A turn recorded in metadata-only mode cannot be replayed.</p>
+			</Card>
+			<Card title="Corrections close, they don't delete">
+				<p>When a fact stops being true, Strikta closes it with an end date instead of deleting it, so you can see what the agent believed and when. Deliberate erasure exists too; it is not immediate: superseded versions are kept until maintenance removes them.</p>
+			</Card>
+		</div>
+	</section>
+
+	<section aria-labelledby="egress">
+		<h2 id="egress">What leaves your machine</h2>
+		<table class="compare">
+			<thead><tr><th scope="col">Stays on your machine</th><th scope="col">Is sent out</th></tr></thead>
+			<tbody>
+				{egress.map((row) => <tr><td data-label="Stays on your machine">{row.stays}</td><td data-label="Is sent out">{row.sent}</td></tr>)}
+			</tbody>
+		</table>
+		<p class="prose note">To keep all processing on your machine, point Strikta at a local OpenAI-compatible server (Ollama, vLLM or llama.cpp) for generation, and leave reranking off. Reranking is off in the production presets.</p>
+	</section>
+
+	<section aria-labelledby="runtimes">
+		<h2 id="runtimes">Works with your agent</h2>
+		<div class="grid">
+			<Card title="Hermes Agent"><p>Context engine and memory provider in one plugin. Hermes 0.22.5 and later 0.22 releases.</p></Card>
+			<Card title="OpenClaw"><p>A context engine plugin with no summariser. OpenClaw 2026.9.33 and 2026.10.7, Node.js 24 or newer.</p></Card>
+			<Card title="Claude Code and Codex"><p>Hooks recall memory before each prompt and capture after each answer; an MCP server gives the same memory to any MCP client.</p></Card>
+		</div>
+		<p class="muted note">Quickstart published with the first release.</p>
+	</section>
+
+	<section class="pro" aria-labelledby="pro">
+		<h2 id="pro">Strikta Pro: the Console for what your agent sees</h2>
+		<p class="prose">A local web app beside your own engine: the exact window of every turn with the source of each sentence, every candidate with its score terms and rejection reason, corrections with a preview and undo, health and alerts. It runs on your machine and sends nothing to us.</p>
+		<p class="prose"><strong>On sale from the public launch.</strong></p>
+		<Button href="/pro" quiet>About Strikta Pro</Button>
+	</section>
+
+	<section aria-labelledby="licence">
+		<h2 id="licence">Company licence</h2>
+		<p class="prose"><Quote id="company-licence-offer" /> <a href={enquiry}>licensing@strikta.dev</a> · <a href="/company-licence">How the company licence works</a></p>
+	</section>
+</Page>
+<style>
+	.intro {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-7) var(--s-gutter);
+		align-items: end;
+		margin: calc(-1 * var(--s-space-8)) calc(-1 * var(--s-margin)) 0;
+		padding: var(--s-space-10) var(--s-margin) var(--s-space-9);
+		border-block: var(--s-space-6) solid var(--s-color-paper);
+	}
+	.title,
+	.window {
+		grid-column: 1 / -1;
+	}
+	.intro :global(.mark) {
+		inline-size: var(--s-text-display);
+		margin-block-end: var(--s-space-6);
+	}
+	/* The stroke overlaps both blocks so no anti-aliased seam shows while the slit is closed. */
+	.slit {
+		stroke: currentColor;
+		stroke-width: 0.5;
+		visibility: hidden;
+		animation: slit var(--s-duration-base) steps(2, end) var(--s-duration-scene) backwards;
+	}
+	.intro h1 {
+		max-inline-size: 14ch;
+		margin-block-end: var(--s-space-7);
+		font-size: var(--s-text-display);
+		font-weight: var(--s-display-weight);
+		font-variation-settings: 'opsz' var(--s-display-opsz);
+		letter-spacing: var(--s-display-tracking);
+		line-height: var(--s-display-leading);
+	}
+	.intro .qualifier {
+		margin-block-start: var(--s-space-5);
+		padding-inline-start: var(--s-space-4);
+		border-inline-start: var(--s-line-strong) solid var(--s-color-rule);
+		font-size: var(--s-text-sm);
+	}
+	.intro .platform {
+		margin-block: 0;
+		font-size: var(--s-text-sm);
+	}
+	.window {
+		--row: clamp(28px, 2.6vw, 96px);
+		display: grid;
+		gap: calc(var(--row) / 2);
+		animation: build var(--s-duration-scene) steps(6, end) both;
+	}
+	.row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--s-space-3);
+		block-size: var(--row);
+		padding: 0 var(--s-space-3);
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+		font-size: clamp(12px, 0.9vw, 28px);
+	}
+	.range {
+		font-family: var(--s-font-mono);
+	}
+	@media (min-width: 64rem) {
+		.title {
+			grid-column: span 7;
+		}
+		.window {
+			grid-column: span 5;
+		}
+	}
+	@media (min-width: 160rem) {
+		.title {
+			grid-column: span 10;
+		}
+		.window {
+			grid-column: span 6;
+		}
+	}
+	@keyframes build {
+		from {
+			clip-path: inset(0 0 100% 0);
+		}
+		to {
+			clip-path: inset(0);
+		}
+	}
+	@keyframes slit {
+		from {
+			visibility: visible;
+		}
+		to {
+			visibility: hidden;
+		}
+	}
+	@media (prefers-color-scheme: dark) {
+		.intro {
+			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		}
+	}
+	.note {
+		margin-block-start: var(--s-space-5);
+	}
+	.pro {
+		margin-block-start: var(--s-space-8);
+		padding: var(--s-space-6);
+		border: var(--s-line-hair) solid var(--s-color-ink);
+	}
+	.pro h2 {
+		margin-block-start: 0;
+	}
+</style>

@@ -1,0 +1,7 @@
+---
+import { quote } from '../quote.ts';
+type Props = { id: string };
+const { id } = Astro.props;
+const text = quote(id);
+---
+<span data-quote={id}>{text}</span>

@@ -7,7 +7,13 @@ import { exportDigest, sha256 } from './export.ts';
 
 const GIT_VARIABLE = /^GIT_/u;
 
-type SyntheticQuote = { readonly id: string; readonly text: string; readonly pages: readonly string[]; readonly fills?: Readonly<Record<string, string>> };
+type SyntheticQuote = {
+	readonly id: string;
+	readonly text: string;
+	readonly pages: readonly string[];
+	readonly fills?: Readonly<Record<string, string>>;
+	readonly source?: { readonly file: string };
+};
 
 /** A fresh synthetic working tree under the temporary folder, with a function that removes it. */
 export function workspace(files: Readonly<Record<string, string>>): { directory: string; remove: () => void } {
@@ -27,7 +33,7 @@ export function syntheticExport(legal: Readonly<Record<string, string>>, quotes:
 		schema: 1,
 		export_sha256: exportDigest(files),
 		files,
-		quotes: quotes.map((quote) => ({ ...quote, sha256: sha256(quote.text), source: { kind: 'decided-copy' }, fills: quote.fills ?? {} }))
+		quotes: quotes.map((quote) => ({ ...quote, sha256: sha256(quote.text), source: quote.source ?? { kind: 'decided-copy' }, fills: quote.fills ?? {} }))
 	};
 	const exported = Object.fromEntries(Object.entries(legal).map(([path, content]) => [`content/export/${path}`, content] as const));
 	const tree = { 'content/export/quotes.yaml': stringify(index), ...exported };

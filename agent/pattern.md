@@ -14,74 +14,28 @@ const text = quote(id);
 <span data-quote={id}>{text}</span>
 ```
 
-## Slot and quote access (`src/quote.ts`)
-`loadExport`, `filledText`, `loadSlots` and `slot` exist already; the page-facing `quote()` and the loaded `slots` are added with the first page that needs them.
+## Slot and quote access (`src/slot.ts`, `src/quote.ts`, `src/stage.ts`)
+`slots` holds every fact of `data/` and of the export's `company.yaml` and `pro.yaml`; `quote(id)` returns an exported quote filled from them; `staged(route)` says whether the current stage builds a page. All three load from `process.cwd()`: builds run from the repository root, and import.meta.url points into the bundle.
 ```ts
-// src/slot.ts
-// Builds run from the repository root; import.meta.url points into the bundle, so never resolve data from it.
-export const slots = loadSlots(join(process.cwd(), 'data'));
-```
-```ts
-// src/quote.ts
-import { join } from 'node:path';
-import { slots } from './slot.ts';
+import { quote } from '../quote.ts';
+import { slot, slots } from '../slot.ts';
+import { staged } from '../stage.ts';
 
-const exported = loadExport(join(process.cwd(), 'content', 'export'));
-
-export function quote(id: string): string {
-	const entry = exported?.quotes.find((candidate) => candidate.id === id);
-	if (entry === undefined) {
-		throw new Error(`No exported quote "${id}": a new export is needed; never write the text here.`);
-	}
-	const filled = filledText(entry, slots);
-	return filled;
-}
+const address = slot(slots, 'company.postal_address'); // an unfilled slot fails the build
+const offer = quote('company-licence-offer'); // a missing quote fails the build
+const linked = staged('/docs'); // link only to pages the stage builds
 ```
+An exported quote that belongs to a section the current stage does not show is listed under `withheld` in `data/stage.yaml`, so `npm run test:built` does not look for it.
 
 ## Legal page
-`src/pages/legal/licence-terms.astro` with `src/components/Legal.astro` and `tool/legal.ts`. Legal text never goes through Markdown: Markdown would change typography and line joins. `legal.ts` splits the exported file on its `##` headings and keeps every clause line as it is; `Legal.astro` renders each line as escaped text.
-```ts
-// tool/legal.ts
-export type Section = { readonly heading: string; readonly lines: readonly string[] };
-export type LegalText = { readonly preamble: readonly string[]; readonly sections: readonly Section[] };
-
-export function legalText(text: string): LegalText {
-	const [preamble = '', ...parts] = text.split(/^## /mu);
-	const sections = parts.map((part) => {
-		const [heading = '', ...lines] = part.split('\n');
-		const section = { heading, lines: clauses(lines) };
-		return section;
-	});
-	const legal = { preamble: clauses(preamble.split('\n')), sections };
-	return legal;
-}
-
-function clauses(lines: readonly string[]): readonly string[] {
-	const kept = lines.filter((line) => line !== '');
-	return kept;
-}
-```
+`src/pages/legal/[page].astro` builds one page for each staged entry of `legal` in `src/navigation.ts` under `/legal/`; an entry elsewhere, such as `/withdraw`, has its own page file, like `/security`. Each is rendered by `src/components/Legal.astro` from `exportedText(file)`, which fills the placeholders the export maps to slots. Legal text never goes through Markdown: Markdown would change typography and line joins. `tool/legal.ts` splits the file on its `##` headings and keeps every clause line as it is; only list items (`- `), table rows (`| … |`) and the file's own `**strong**` and `` `code` `` runs become markup, through `Block.astro` and `Clause.astro`, as escaped text; a backslash-escaped mark such as `\*` shows without its backslash.
 ```astro
 ---
-// src/components/Legal.astro
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { legalText } from '../../tool/legal.ts';
-type Props = { file: string };
-const { file } = Astro.props;
-const { preamble, sections } = legalText(readFileSync(join(process.cwd(), 'content', 'export', file), 'utf8'));
+import Legal from '../../components/Legal.astro';
 ---
-<article class="legal">
-	{preamble.map((line) => <p>{line}</p>)}
-	{sections.map((part) => (
-		<section>
-			<h2>{part.heading}</h2>
-			{part.lines.map((line) => <p>{line}</p>)}
-		</section>
-	))}
-</article>
+<Legal file="legal/refund-policy.md" draft />
 ```
-The page sets the version block from slots and lists the file in `data/stage.yaml`; its quotes list the page under `pages` in the export, so `npm run test:built` proves the text arrived.
+A legal text that is not in force is marked `draft: true` in `src/navigation.ts`: its page says "Draft, not in force" and shows the placeholders no slot fills yet exactly as exported, and `npm run test:built` accepts in its `<main>` only the placeholders and price figures that occur as whole matches in that page's own exported text. Any other legal text whose placeholders no slot fills stays out of the stage (`stages: []`) until a new export fills them. Its quotes list its page under `pages` in the export, so `npm run test:built` proves the text arrived.
 
 ## Component
 One component per file, single-word PascalCase name, logic in the frontmatter, markup below, colours only from the design tokens, no client script.
@@ -94,12 +48,12 @@ const address = slot(slots, 'company.postal_address');
 <address class="address">{address} · <a href="mailto:support@strikta.dev">support@strikta.dev</a></address>
 <style>
 	.address {
-		color: var(--muted);
+		color: var(--s-color-muted);
 		font-style: normal;
 	}
 	.address a {
 		display: inline-block;
-		min-block-size: 44px;
+		min-block-size: var(--s-target);
 	}
 </style>
 ```

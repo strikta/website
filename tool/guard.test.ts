@@ -73,6 +73,10 @@ test.each([
 	['gh api repos/strikta/synthetic -X DELETE', 'infrastructure needs the founder'],
 	['cat .guard.local.yaml', "the local guard file stays on the founder's machine"],
 	['ls && pwd; ls', 'no ; chains: use && so a failure stops the chain'],
+	['git commit -m "Keep a; b apart"', 'no ; chains: use && so a failure stops the chain'],
+	["echo 'a; b'", 'no ; chains: use && so a failure stops the chain'],
+	['find tool -name "*.ts" -exec wc -l {} \\;', 'no ; chains: use && so a failure stops the chain'],
+	['cat <<EOF > note.md\nline; with a separator\nEOF', 'no ; chains: use && so a failure stops the chain'],
 	['ssh vm', 'remote access needs the founder\'s "deploy"'],
 	['rsync -a dist/ vm:site', 'remote access needs the founder\'s "deploy"'],
 	['scp dist.tar vm:', 'remote access needs the founder\'s "deploy"']
@@ -81,7 +85,7 @@ test.each([
 });
 
 test.each([
-	'git add tool/guard.ts tool/shell.ts',
+	'git add tool/guard.ts tool/text.ts',
 	'git add ./tool/guard.ts',
 	'git commit -m "Add a synthetic change"',
 	'git commit --amend -m "Synthetic change"',
@@ -97,9 +101,7 @@ test.each([
 	'git push -u origin feature/synthetic',
 	'git add tool/guard.ts && git commit -m "Synthetic change"',
 	'cat src/../tool/guard.ts',
-	'git commit -m "Keep a; b apart"',
-	'find tool -name "*.ts" -exec wc -l {} \\;',
-	'cat <<EOF > note.md\nline; with a separator\nEOF',
+	'cat <<EOF > note.md\nline with no separator\nEOF',
 	'npm run lint && npm run check',
 	'curl https://strikta.dev',
 	'ls content/export 2>/dev/null'

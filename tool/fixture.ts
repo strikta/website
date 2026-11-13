@@ -1,8 +1,11 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { vi } from 'vitest';
 import { stringify } from 'yaml';
 import { exportDigest, sha256 } from './export.ts';
+
+const GIT_VARIABLE = /^GIT_/u;
 
 type SyntheticQuote = {
 	readonly id: string;
@@ -35,4 +38,17 @@ export function syntheticExport(legal: Readonly<Record<string, string>>, quotes:
 	const exported = Object.fromEntries(Object.entries(legal).map(([path, content]) => [`content/export/${path}`, content] as const));
 	const tree = { 'content/export/quotes.yaml': stringify(index), ...exported };
 	return tree;
+}
+
+/** The process environment without git's `GIT_*` variables, which a git hook exports and which would point a spawned git at the hooked repository instead of its working folder. */
+export function isolated(): NodeJS.ProcessEnv {
+	const environment = Object.fromEntries(Object.entries(process.env).filter(([name]) => !GIT_VARIABLE.test(name)));
+	return environment;
+}
+
+/** Removes the `GIT_*` variables from this test process, so git run in process acts on the folder it is given. */
+export function unhook(): void {
+	for (const name of Object.keys(process.env).filter((variable) => GIT_VARIABLE.test(variable))) {
+		vi.stubEnv(name, undefined);
+	}
 }

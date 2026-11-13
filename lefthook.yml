@@ -19,6 +19,10 @@ commit-msg:
     message:
       run: node tool/check.ts message {1}
 pre-push:
+  scripts:
+    pushed.sh:
+      runner: sh
+      use_stdin: true
   commands:
     built:
       run: npm run build && npm run test:built

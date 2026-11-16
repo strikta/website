@@ -46,7 +46,7 @@ test('the home hero shows its sections in render order and then opens the slit, 
 	expect(await slit.evaluate((path) => getComputedStyle(path).animationName)).toBe('slit-left');
 	await expect(page.locator('h1')).toBeVisible();
 	await page.emulateMedia({ reducedMotion: 'reduce' });
-	expect(await rows.evaluateAll((elements) => elements.map((element) => [getComputedStyle(element).animationName, getComputedStyle(element).visibility].join(' ')))).toEqual(Array.from({ length: await rows.count() }, () => 'none visible'));
+	expect(await rows.evaluateAll((elements) => elements.map((element) => [getComputedStyle(element).animationName, getComputedStyle(element).opacity].join(' ')))).toEqual(Array.from({ length: await rows.count() }, () => 'none 1'));
 	expect(await slit.evaluate((path) => [getComputedStyle(path).animationName, getComputedStyle(path).transform].join(' '))).toBe('none none');
 });
 

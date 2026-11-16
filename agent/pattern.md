@@ -27,6 +27,19 @@ const linked = staged('/docs'); // link only to pages the stage builds
 ```
 An exported quote that belongs to a section the current stage does not show is listed under `withheld` in `data/stage.yaml`, so `npm run test:built` does not look for it.
 
+## Diagram and event
+Product imagery is drawn from synthetic data in `data/` (`window.yaml`, `replay.yaml`, `fact.yaml`, `block.yaml`) through `src/diagram.ts`; sizes reach the page through the generated `/diagram.css`, keyed by `data-turn` or `data-fact`, never through a `style` attribute. Data marked `source: brand-guide` is hand-written and fails the build once the stage publishes the release; the demo generator replaces it with `source: demo`. A section that waits for a product event is shown with `released('<event>')`, the event listed under `events` in `data/stage.yaml`, false until it happens.
+```astro
+---
+import Window from '../components/Window.astro';
+import { released, staged } from '../stage.ts';
+const numbered = staged('/docs'); // byte ranges and timings are numbers: none at S1 outside the home hero
+---
+<Window turn="0418" ranges={numbered} caption="Turn 0418's window, in render order. Heights are bytes. Synthetic persona." />
+{released('situation') && <p>…</p>}
+```
+The 1:6 cut (`Cut.astro`, `data-angle`) appears at most once per view; display type only in `Hero.astro`; `npm run test:built` scans the built stylesheets for literal colours and lengths.
+
 ## Legal page
 `src/pages/legal/[page].astro` builds one page for each staged entry of `legal` in `src/navigation.ts` under `/legal/`; an entry elsewhere, such as `/withdraw`, has its own page file, like `/security`. Each is rendered by `src/components/Legal.astro` from `exportedText(file)`, which fills the placeholders the export maps to slots. Legal text never goes through Markdown: Markdown would change typography and line joins. `tool/legal.ts` splits the file on its `##` headings and keeps every clause line as it is; only list items (`- `), table rows (`| … |`) and the file's own `**strong**` and `` `code` `` runs become markup, through `Block.astro` and `Clause.astro`, as escaped text; a backslash-escaped mark such as `\*` shows without its backslash.
 ```astro

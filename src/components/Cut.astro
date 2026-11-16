@@ -1,0 +1,28 @@
+---
+// The turn boundary: a 1 px rule at the system angle (1:6), at most once per view.
+type Props = { tall?: boolean };
+const { tall } = Astro.props;
+---
+<svg class:list={['cut', { tall: tall === true }]} viewBox="0 0 4 24" aria-hidden="true" focusable="false" data-angle><line x1="0" y1="24" x2="4" y2="0" /></svg>
+<style>
+	.cut {
+		flex: none;
+		inline-size: var(--s-space-1);
+		block-size: var(--s-space-5);
+		overflow: visible;
+	}
+	.tall {
+		inline-size: var(--s-space-3);
+		block-size: calc(var(--s-space-8) + var(--s-space-2));
+	}
+	line {
+		stroke: var(--s-color-ink);
+		stroke-width: var(--s-line-hair);
+		vector-effect: non-scaling-stroke;
+	}
+	@media (forced-colors: active) {
+		line {
+			stroke: CanvasText;
+		}
+	}
+</style>

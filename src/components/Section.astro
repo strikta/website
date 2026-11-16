@@ -1,0 +1,59 @@
+---
+// A numbered page section: the label "01 · Name" and the heading hang in the first columns from 64 rem, the content beside them on the same grid.
+type Props = { id: string; number: string; label: string; title: string };
+const { id, number, label, title } = Astro.props;
+---
+<section class="part" aria-labelledby={id}>
+	<div class="head">
+		<p class="label muted">{number} · {label}</p>
+		<h2 id={id}>{title}</h2>
+	</div>
+	<div class="body">
+		<slot />
+	</div>
+</section>
+<style>
+	.part {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-6) var(--s-gutter);
+		margin-block-start: var(--s-space-9);
+	}
+	.head,
+	.body {
+		grid-column: 1 / -1;
+	}
+	.head p {
+		margin: 0 0 var(--s-space-3);
+	}
+	h2 {
+		margin: 0;
+	}
+	.body {
+		display: grid;
+		grid-template-columns: subgrid;
+		align-content: start;
+		row-gap: var(--s-space-6);
+	}
+	.body > :global(*) {
+		grid-column: 1 / -1;
+		min-inline-size: 0;
+		margin-block: 0;
+	}
+	@media (min-width: 64rem) {
+		.head {
+			grid-column: 1 / span 4;
+		}
+		.body {
+			grid-column: 5 / -1;
+		}
+	}
+	@media (min-width: 160rem) {
+		.head {
+			grid-column: 1 / span 5;
+		}
+		.body {
+			grid-column: 6 / -1;
+		}
+	}
+</style>

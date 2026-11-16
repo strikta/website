@@ -1,0 +1,165 @@
+---
+import { markBlocks } from '../logo.ts';
+import { slot, slots } from '../slot.ts';
+import { released, staged } from '../stage.ts';
+import Button from './Button.astro';
+import Quote from './Quote.astro';
+import Window from './Window.astro';
+const { left, right } = markBlocks(process.cwd());
+const installed = staged('/docs');
+const compared = staged('/head-to-head');
+const counted = released('hermes_n_of_m');
+const platform = installed ? `Latest release ${slot(slots, 'release.tag')}.` : 'Source code opens with the first release.';
+const summaries = counted ? { served: slot(slots, 'h2h.hermes_summary_n'), requests: slot(slots, 'h2h.hermes_summary_m') } : undefined;
+---
+<section class="hero scheme-dark s-brand-moment" aria-labelledby="headline">
+	<div class="title">
+		<svg class="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-angle><path class="left" d={left} /><path class="right" d={right} /></svg>
+		<h1 id="headline"><Quote id="home-headline" /></h1>
+		<p class="sub prose">Strikta is an open-source context engine for LLM agents. Before every model request it rebuilds the whole context window from your agent's verbatim history and the facts derived from it: nothing stored is summarised, and the model never has to decide to search memory.</p>
+		<p class="proof prose">Open any turn to see what was in the window, where each item came from and why the rest was left out, then replay it as of an earlier time.</p>
+		{summaries === undefined
+			? <p class="note prose" data-note="hermes">On Hermes, Hermes's own compressor still compacts its saved transcript. Strikta journals every request, so you can see when that summary reaches the model.</p>
+			: <p class="note prose" data-note="hermes">On Hermes, Hermes's own compressor still compacts its saved transcript; in our head-to-head its summary reached the model in {summaries.served} of {summaries.requests} requests. On OpenClaw, the plugin has no summariser, and OpenClaw still enforces its prompt budget.</p>}
+		<div class="buttons">
+			{installed ? <Button href="/docs/get-started/hermes/">Install for Hermes</Button> : <Button href="/how-it-works">How it works</Button>}
+			{compared ? <Button href="/head-to-head" quiet>See the head-to-head</Button> : installed ? <Button href="/how-it-works" quiet>How it works</Button> : <Button href="#inspect" quiet>See one turn</Button>}
+		</div>
+		<p class="platform prose">Open source under AGPL-3.0. Self-hosted with Docker Compose on Linux and macOS; Windows through WSL2. {platform}</p>
+	</div>
+	<div class="diagram">
+		<Window turn="0418" ranges caption="One turn's window, in render order. Heights are bytes. Synthetic persona." />
+	</div>
+</section>
+<style>
+	.hero {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-7) var(--s-gutter);
+		align-items: end;
+		margin: calc(-1 * var(--s-space-8)) calc(-1 * var(--s-margin)) 0;
+		padding: var(--s-space-10) var(--s-margin) var(--s-space-9);
+		border-block: var(--s-space-6) solid var(--s-color-paper);
+	}
+	.title,
+	.diagram {
+		grid-column: 1 / -1;
+	}
+	.mark {
+		display: block;
+		inline-size: var(--s-space-7);
+		block-size: auto;
+		margin-block-end: var(--s-space-6);
+		fill: currentColor;
+	}
+	h1 {
+		max-inline-size: 14ch;
+		margin-block: 0 var(--s-space-6);
+		font-size: var(--s-text-display);
+		font-weight: var(--s-display-weight);
+		font-variation-settings: 'opsz' var(--s-display-opsz);
+		letter-spacing: var(--s-display-tracking);
+		line-height: var(--s-display-leading);
+	}
+	.sub {
+		margin-block: 0 var(--s-space-4);
+		font-size: var(--s-text-lg);
+		line-height: var(--s-leading-body);
+	}
+	.proof {
+		margin-block: 0 var(--s-space-5);
+		color: var(--s-color-ink-2);
+	}
+	.note {
+		margin-block: 0;
+		padding-inline-start: var(--s-space-4);
+		border-inline-start: var(--s-line-strong) solid var(--s-color-rule);
+		color: var(--s-color-muted);
+		font-size: var(--s-text-sm);
+	}
+	.buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-space-3) var(--s-space-4);
+		margin-block: var(--s-space-6) var(--s-space-4);
+	}
+	.platform {
+		margin-block: 0;
+		color: var(--s-color-muted);
+		font-size: var(--s-text-sm);
+	}
+	.diagram :global(.section) {
+		animation-name: appear;
+		animation-duration: calc(var(--s-duration-scene) * var(--order) / var(--count));
+		animation-timing-function: steps(1, end);
+	}
+	.left {
+		animation: slit-left var(--s-duration-base) steps(2, end) var(--s-duration-scene) backwards;
+	}
+	.right {
+		animation: slit-right var(--s-duration-base) steps(2, end) var(--s-duration-scene) backwards;
+	}
+	@keyframes appear {
+		from {
+			visibility: hidden;
+		}
+		to {
+			visibility: visible;
+		}
+	}
+	@keyframes slit-left {
+		from {
+			transform: translateX(1.5px);
+		}
+		to {
+			transform: none;
+		}
+	}
+	@keyframes slit-right {
+		from {
+			transform: translateX(-1.5px);
+		}
+		to {
+			transform: none;
+		}
+	}
+	@media (max-width: 39.99rem) {
+		.buttons :global(.button) {
+			justify-content: center;
+			inline-size: 100%;
+		}
+	}
+	@media (min-width: 40rem) {
+		.title {
+			grid-column: 1 / span 7;
+		}
+		.diagram {
+			grid-column: 1 / span 6;
+		}
+	}
+	@media (min-width: 64rem) {
+		.hero {
+			min-block-size: min(calc(100svh - 4rem), 72rem);
+		}
+		.mark {
+			inline-size: var(--s-space-8);
+		}
+		.diagram {
+			grid-column: 8 / span 5;
+			align-self: stretch;
+		}
+	}
+	@media (min-width: 160rem) {
+		.title {
+			grid-column: 1 / span 10;
+		}
+		.diagram {
+			grid-column: 11 / span 6;
+		}
+	}
+	@media (prefers-color-scheme: dark) {
+		.hero {
+			border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+		}
+	}
+</style>

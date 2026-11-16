@@ -1,0 +1,39 @@
+---
+import Cut from './Cut.astro';
+import Window from './Window.astro';
+type Props = { before: string; after: string };
+const { before, after } = Astro.props;
+---
+<div class="boundary">
+	<div class="turn">
+		<p class="label muted">turn {before}</p>
+		<Window turn={before} mini />
+	</div>
+	<Cut tall />
+	<div class="turn">
+		<p class="label muted">turn {after} · rebuilt</p>
+		<Window turn={after} mini />
+	</div>
+</div>
+<style>
+	.boundary {
+		display: flex;
+		align-items: flex-end;
+		gap: var(--s-space-5);
+	}
+	.turn {
+		display: grid;
+		gap: var(--s-space-2);
+	}
+	.boundary > :global(.cut) {
+		align-self: center;
+	}
+	.turn p {
+		margin: 0;
+	}
+	@media (max-width: 39.99rem) {
+		.boundary {
+			gap: var(--s-space-3);
+		}
+	}
+</style>

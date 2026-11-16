@@ -1,0 +1,25 @@
+---
+// A list of limits, each item behind a hanging muted en dash; the items are the slotted <li> elements.
+---
+<ul class="limits prose">
+	<slot />
+</ul>
+<style>
+	.limits {
+		padding: 0;
+		list-style: none;
+	}
+	.limits > :global(li) {
+		position: relative;
+		padding-inline-start: var(--s-space-5);
+	}
+	.limits > :global(li + li) {
+		margin-block-start: var(--s-space-3);
+	}
+	.limits > :global(li)::before {
+		position: absolute;
+		inset-inline-start: 0;
+		color: var(--s-color-muted);
+		content: '–';
+	}
+</style>

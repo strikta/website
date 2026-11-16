@@ -7,7 +7,8 @@ const features = [
 	{ title: 'Correct what it remembers', text: 'Retract a fact that was born wrong, end one that stopped being true, correct, pin, suppress or erase. Each change shows a dry-run preview first, and every change except erase can be undone.' },
 	{ title: 'Know when something breaks', text: 'Latency by domain, consolidation progress with pause and cancel, watcher heartbeats, failed stores and provider errors, with alerts to ntfy, Telegram or an email webhook.' },
 	{ title: 'Browse a large memory', text: 'Facts, entities and stored turns, searched through the engine, built for stores of hundreds of thousands of facts.' },
-	{ title: 'Control capture and see egress', text: 'Pause capture, exclude projects, set each domain\'s audit mode, and see which calls left your machine in the last 24 hours, to which provider, for what purpose. Replay any turn as a dry run and compare it with the original.' }
+	{ title: 'Control capture', text: 'Pause capture, exclude projects and set each domain\'s audit mode. Replay any turn as a dry run and compare it with the original.' },
+	{ title: 'See what left your machine', text: 'See which calls left your machine in the last 24 hours, to which provider, for what purpose.' }
 ];
 const comparison: readonly { capability: string; free: string; pro: string }[] = [
 	{ capability: 'Context rebuilt every turn', free: 'Yes', pro: 'Yes' },
@@ -18,10 +19,10 @@ const comparison: readonly { capability: string; free: string; pro: string }[] =
 	{ capability: 'Licence', free: 'AGPL-3.0-only', pro: 'Own use without AGPL obligations' }
 ];
 ---
-<Page title="Strikta Pro" description="Strikta Pro: the Console that shows the exact context your agent was given each turn and lets you correct what it remembers.">
+<Page title="Strikta Pro" description="Strikta Pro: the Pro Console for every turn's exact window, plus a licence to use the engine without AGPL obligations.">
 	<h1>Strikta Pro</h1>
 	<p class="lead prose">The Pro Console shows the exact context your agent was given each turn, explains why each item is there, and lets you correct what it remembers. It runs beside your own engine and sends nothing to us.</p>
-	<Callout label="Availability"><p>Strikta Pro goes on sale at the public launch.</p></Callout>
+	<Callout label="Availability"><p>Strikta Pro goes on sale at the public launch. The price and the founding offer are published then.</p></Callout>
 
 	<section aria-labelledby="included">
 		<h2 id="included">What you get</h2>

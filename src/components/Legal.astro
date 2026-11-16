@@ -92,12 +92,12 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 	@media (min-width: 64rem) {
 		.indexed {
 			display: grid;
-			grid-template-columns: minmax(12rem, 20rem) minmax(0, 1fr);
-			column-gap: var(--s-space-8);
+			grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+			column-gap: var(--s-gutter);
 			align-items: start;
 		}
 		.indexed > :global(*) {
-			grid-column: 2;
+			grid-column: 4 / span 7;
 		}
 		.indexed h1 {
 			grid-column: 1 / -1;
@@ -107,13 +107,21 @@ const parts = sections.map((section, index) => ({ ...section, anchor: `section-$
 		}
 		.toc {
 			position: sticky;
-			inset-block-start: var(--s-space-9);
-			grid-area: 3 / 1;
-			max-block-size: calc(100vh - var(--s-space-9));
+			inset-block-start: calc(4rem + var(--s-space-6));
+			grid-area: 3 / 1 / auto / span 3;
+			max-block-size: calc(100vh - 4rem - var(--s-space-6));
 			overflow-y: auto;
 			margin-block: 0;
 			padding-block-start: 0;
 			border-block: 0;
+		}
+	}
+	@media (min-width: 160rem) {
+		.indexed > :global(*) {
+			grid-column: 5 / span 9;
+		}
+		.toc {
+			grid-area: 3 / 1 / auto / span 4;
 		}
 	}
 	@media print {

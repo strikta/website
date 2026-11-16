@@ -18,7 +18,7 @@ const company = slot(slots, 'company.name');
 				<nav aria-label={column.title}>
 					<h2 class="label">{column.title}</h2>
 					<ul>
-						{column.links.map((link) => <li><a href={link.route}>{link.label}</a></li>)}
+						{column.links.map((link) => <li><a href={link.route}>{link.label}{'draft' in link && link.draft && <span class="draft">{' (draft)'}</span>}</a></li>)}
 					</ul>
 				</nav>
 			))}
@@ -85,6 +85,9 @@ const company = slot(slots, 'company.name');
 	}
 	.columns a:hover {
 		text-decoration: underline;
+	}
+	.draft {
+		color: var(--s-color-muted);
 	}
 	.notice {
 		max-inline-size: calc(var(--s-prose) * 2);

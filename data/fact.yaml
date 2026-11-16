@@ -1,0 +1,7 @@
+# Synthetic facts of the persona Alex in their states, with validity on a 0 to 100 time axis (`end` absent while a fact is
+# still valid). Written by hand from the brand guide (`source: brand-guide`) until the demo generator writes them.
+source: brand-guide
+facts:
+  - {id: fact-0042, state: superseded, text: The weekly sync is on Tuesday., start: 0, end: 62, successor: fact-0193}
+  - {id: fact-0193, state: current, text: The weekly sync is on Thursday., start: 62}
+  - {id: fact-0107, state: retracted, text: Alex uses tabs for indentation., start: 24, end: 48}

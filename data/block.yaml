@@ -1,0 +1,12 @@
+# Synthetic window text of the persona Alex in the chatbot preset: the standing-rules block and the dates the retrieved
+# section carries. Written by hand (`source: brand-guide`) until the demo generator copies them from a real assembly.
+source: brand-guide
+rules: |-
+  [Standing Rules]
+  Always answer in metric units.
+  Use YAML for configuration examples.
+  Follow every standing rule above in this reply unless the current message changes it.
+dates: |-
+  Reference date: 2026-05-13 (the date this question was asked). Memories are sorted chronologically — use their dates for precise time-difference calculations.
+
+  [Note: 'today', 'yesterday', 'just', 'now', 'last week', etc. in the texts below refer to each memory's header date, NOT the current date. When you mention these events in your reply, REWRITE them as absolute dates (e.g. 'on 2026-05-10' or 'three days ago' — not 'yesterday' — when the header date is 2026-05-10 and the current date is 2026-05-13).]

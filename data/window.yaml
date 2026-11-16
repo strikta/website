@@ -1,0 +1,27 @@
+# Synthetic turns of the persona Alex that the window diagrams draw: each section's byte range in render order, and the
+# candidates of a turn. `source: brand-guide` marks values written by hand from the brand guide until the demo generator
+# writes them from a real run (`source: demo`); a stage that publishes the release fails the build while one is left.
+# Turn 0418 holds the guide's ranges; turn 0417 is the guide's earlier turn, with the smaller retrieved section it draws.
+- turn: '0417'
+  source: brand-guide
+  sections:
+    - {name: system, start: 0, end: 222}
+    - {name: rules, start: 223, end: 1206}
+    - {name: profile, start: 1207, end: 1530}
+    - {name: retrieved, start: 1531, end: 2992, selected: true}
+    - {name: conversation, start: 2993, end: 4184}
+    - {name: message, start: 4185, end: 4372}
+- turn: '0418'
+  source: brand-guide
+  sections:
+    - {name: system, start: 0, end: 222}
+    - {name: rules, start: 223, end: 1206}
+    - {name: profile, start: 1207, end: 1530}
+    - {name: retrieved, start: 1531, end: 3410, selected: true}
+    - {name: conversation, start: 3411, end: 4602}
+    - {name: message, start: 4603, end: 4790}
+  candidates:
+    - {id: fact-0193, served: true, text: The team moved the weekly sync to Thursday.}
+    - {id: fact-0204, served: true, text: Persona Alex prefers YAML for config files.}
+    - {id: fact-0191, served: false, stage: mmr}
+    - {id: fact-0042, served: false, stage: score, text: The weekly sync is on Tuesday.}

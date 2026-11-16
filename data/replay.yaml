@@ -1,0 +1,8 @@
+# Synthetic replay of turn 0418 against turn 0417: the lines of the retrieved section that changed. Written by hand from
+# the brand guide (`source: brand-guide`) until the demo generator writes a dry-run replay (`source: demo`).
+source: brand-guide
+from: '0417'
+to: '0418'
+lines:
+  - {change: removed, text: fact-0042 Sync on Tuesday.}
+  - {change: added, text: fact-0193 Sync on Thursday.}

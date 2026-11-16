@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { workspace } from '../tool/fixture.ts';
-import { artwork } from './logo.ts';
+import { artwork, markBlocks } from './logo.ts';
 
 test('the mark is two blocks either side of the cut, in a 24-unit square', () => {
 	const mark = artwork(process.cwd(), 'mark');
@@ -17,5 +17,15 @@ test('the lockup is the mark and the inclined wordmark, 165 by 24 units', () => 
 test('a logo file without a path fails the build', () => {
 	const tree = workspace({ 'public/brand/ZZZ.svg': '<svg viewBox="0 0 1 1"></svg>' });
 	expect(() => artwork(tree.directory, 'ZZZ')).toThrow('has no view box or no path');
+	tree.remove();
+});
+
+test('the mark splits into its left and right blocks, so the hero moves them apart without retyping the geometry', () => {
+	expect(markBlocks(process.cwd())).toEqual({ left: 'M0 0L12.5 0L8.5 24L0 24Z', right: 'M15.5 0L24 0L24 24L11.5 24Z' });
+});
+
+test('a mark that is not two blocks fails the build', () => {
+	const tree = workspace({ 'public/brand/mark.svg': '<svg viewBox="0 0 24 24"><path d="M0 0L24 0L24 24Z"/></svg>' });
+	expect(() => markBlocks(tree.directory)).toThrow('is not two blocks');
 	tree.remove();
 });

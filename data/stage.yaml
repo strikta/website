@@ -1,40 +1,51 @@
-# The current release stage and the routes and sections it builds. Later stages are added when they start.
+# The current release stage, the routes each stage builds and the sections it holds back. Switching stages means changing `current`.
 current: s1
+# The head-to-head's outcome from S3: pending, favourable, mixed or unfavourable.
+outcome: pending
+# Product events that add sections to any stage once they happen; a section waiting for one is hidden until it is true.
+events: {situation: false, rules_default: false, telephone: false, console_screenshots: false, us_sales: false, merchant_paddle: false, hermes_n_of_m: false}
 routes:
-  - {path: /, stages: [s1]}
-  - {path: /how-it-works, stages: [s1]}
-  - {path: /pro, stages: [s1]}
-  - {path: /company-licence, stages: [s1]}
-  - {path: /support, stages: [s1]}
-  - {path: /security, stages: [s1]}
-  - {path: /company, stages: [s1]}
-  - {path: /legal, stages: [s1]}
-  - {path: /legal/licence-terms, stages: [s1]}
-  - {path: /legal/privacy, stages: [s1]}
-  - {path: /legal/refund-policy, stages: [s1]}
-  - {path: /legal/support-period, stages: [s1]}
-  - {path: /legal/trademarks, stages: [s1]}
-  - {path: /legal/company-licence, stages: [s1]}
-  - {path: /withdraw, stages: [s1]}
-  - {path: /.well-known/security.txt, stages: [s1]}
-  - {path: /404, stages: [s1]}
-# Stages that publish price figures; none does before S3.
-priced: []
+  - {path: /, stages: [s1, s2, s3, s3plus]}
+  - {path: /how-it-works, stages: [s1, s2, s3, s3plus]}
+  - {path: /pro, stages: [s1, s2, s3, s3plus]}
+  - {path: /company-licence, stages: [s1, s2, s3, s3plus]}
+  - {path: /support, stages: [s1, s2, s3, s3plus]}
+  - {path: /security, stages: [s1, s2, s3, s3plus]}
+  - {path: /company, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/licence-terms, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/privacy, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/refund-policy, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/support-period, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/trademarks, stages: [s1, s2, s3, s3plus]}
+  - {path: /legal/company-licence, stages: [s1, s2, s3, s3plus]}
+  - {path: /withdraw, stages: [s1, s2, s3, s3plus]}
+  - {path: /.well-known/security.txt, stages: [s1, s2, s3, s3plus]}
+  - {path: /404, stages: [s1, s2, s3, s3plus]}
+  - {path: /sitemap.xml, stages: [s1, s2, s3, s3plus]}
+  - {path: /robots.txt, stages: [s1, s2, s3, s3plus]}
+  - {path: /diagram.css, stages: [s1, s2, s3, s3plus]}
+  - {path: /docs/**, stages: [s2, s3, s3plus]}
+  - {path: /legal/contributor-agreement, stages: [s2, s3, s3plus]}
+  - {path: /legal/stays-agpl, stages: [s2, s3, s3plus]}
+  - {path: /head-to-head, stages: [s3, s3plus]}
+  - {path: /pro/checkout, stages: [s3, s3plus]}
+  - {path: /pro/thanks, stages: [s3, s3plus]}
+  - {path: /pro/consent, stages: [s3, s3plus]}
+  - {path: /cancel, stages: [s3, s3plus]}
+  - {path: /cancel/received, stages: [s3, s3plus]}
+  - {path: /withdraw/received, stages: [s3, s3plus]}
+  - {path: /legal/source-archive, stages: [s3, s3plus]}
+  - {path: /legal/third-party-notices, stages: [s3, s3plus]}
+# Stages that publish price figures.
+priced: [s3, s3plus]
 # Exported quotes a stage holds back on one page; the built check does not look for them there.
 withheld:
-  # The price card on /pro.
+  # The price card, the licence terms and the support period on /pro, until it is sold.
   - route: /pro
-    stages: [s1]
-    quotes: [yearly-price, founding-price, refund-promise]
-  # The licence terms on /pro.
-  - route: /pro
-    stages: [s1]
-    quotes: [licence-terms-2, licence-terms-7.1, licence-terms-7.2, licence-terms-7.3, licence-terms-7.4, licence-terms-7.5, licence-terms-7.6, licence-terms-8, licence-terms-10.1, licence-terms-10.2, licence-terms-11, licence-check]
-  # The support period on /pro; its end date is not set yet.
-  - route: /pro
-    stages: [s1]
-    quotes: [support-period]
+    stages: [s1, s2]
+    quotes: [yearly-price, founding-price, refund-promise, support-period, licence-check, licence-terms-2, licence-terms-7.1, licence-terms-7.2, licence-terms-7.3, licence-terms-7.4, licence-terms-7.5, licence-terms-7.6, licence-terms-8, licence-terms-10.1, licence-terms-10.2, licence-terms-11]
   # The price line on /company-licence.
   - route: /company-licence
-    stages: [s1]
+    stages: [s1, s2]
     quotes: [company-licence-price]

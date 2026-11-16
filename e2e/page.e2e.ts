@@ -38,15 +38,36 @@ test('the site ships no script', async ({ page }) => {
 	expect(await page.locator('script').count()).toBe(0);
 });
 
-test('the home hero plays its one animation, and reduced motion shows the final state at once', async ({ page }) => {
+test('the home hero shows its sections in render order and then opens the slit, and reduced motion shows the final state at once', async ({ page }) => {
 	await page.goto('/');
-	const window = page.locator('.intro .window');
-	expect(await window.evaluate((element) => getComputedStyle(element).animationName)).toBe('build');
+	const rows = page.locator('.hero .section');
+	const slit = page.locator('.hero .mark .left');
+	expect(await rows.evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName))).toEqual(Array.from({ length: await rows.count() }, () => 'appear'));
+	expect(await slit.evaluate((path) => getComputedStyle(path).animationName)).toBe('slit-left');
+	await expect(page.locator('h1')).toBeVisible();
 	await page.emulateMedia({ reducedMotion: 'reduce' });
-	expect(await window.evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
-	const slit = page.locator('.intro .mark .slit');
-	expect(await slit.evaluate((path) => [getComputedStyle(path).animationName, getComputedStyle(path).visibility])).toEqual(['none', 'hidden']);
+	expect(await rows.evaluateAll((elements) => elements.map((element) => [getComputedStyle(element).animationName, getComputedStyle(element).visibility].join(' ')))).toEqual(Array.from({ length: await rows.count() }, () => 'none visible'));
+	expect(await slit.evaluate((path) => [getComputedStyle(path).animationName, getComputedStyle(path).transform].join(' '))).toBe('none none');
 });
+
+for (const route of pages) {
+	test(`${route} uses the 1:6 angle at most once per view and gives every control a 44 px target`, async ({ page }) => {
+		await page.goto(route);
+		const viewport = page.viewportSize()?.height ?? 0;
+		const angles = await page.locator('[data-angle]').evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().top + window.scrollY));
+		const crowded = angles.filter((top, index) => angles.slice(index + 1).some((other) => Math.abs(other - top) < viewport));
+		const controls = page.locator('.button, button:visible, summary:visible, header nav a:visible, footer nav a');
+		const small = await controls.evaluateAll((elements) => elements.filter((element) => element.getBoundingClientRect().height < 44).map((element) => element.textContent));
+		expect(crowded).toEqual([]);
+		expect(small).toEqual([]);
+	});
+
+	test(`${route} reflows to one column at 320 px wide, as at 400 % zoom`, async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 256 });
+		await page.goto(route);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+	});
+}
 
 /** Records and aborts every request that leaves the site's origin. */
 async function watchForeign(page: Page, baseURL?: string): Promise<readonly string[]> {

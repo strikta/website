@@ -1,22 +1,28 @@
 ---
-import Replay from '../components/Replay.astro';
+import Button from '../components/Button.astro';
+import Inspect from '../components/Inspect.astro';
+import Rebuilt from '../components/Rebuilt.astro';
 import Section from '../components/Section.astro';
 import Terminal from '../components/Terminal.astro';
 import Timeline from '../components/Timeline.astro';
 import Window from '../components/Window.astro';
-import { loadBlocks, loadFacts, loadReplay } from '../diagram.ts';
+import { loadDemo, loadExcerpt, loadFacts, loadReplay } from '../diagram.ts';
 import Page from '../layouts/Page.astro';
 import { released, staged } from '../stage.ts';
 const root = process.cwd();
 const replay = loadReplay(root);
 const facts = loadFacts(root);
-const blocks = loadBlocks(root);
+const excerpt = loadExcerpt(root);
 const installed = staged('/docs');
+const compared = staged('/head-to-head');
+const situated = released('situation');
+// From S2 the steps carry synthetic timings and the rules section shows real `strikta list-rules` output.
+const listed = installed ? loadDemo(root, 'list-rules.txt') : undefined;
 const stages = [
-	{ name: 'embed', text: 'The current message is embedded on your machine.' },
-	{ name: 'search', text: 'Stored turns and facts are searched for candidates.' },
-	{ name: 'score', text: 'Each candidate is scored; the ones left out are dropped at a named stage.' },
-	{ name: 'compose', text: 'The sections are written into the window in render order.' }
+	{ name: 'embed', timing: '4.1 ms', text: 'The current message is embedded on your machine.' },
+	{ name: 'search', timing: '12.8 ms', text: 'Stored turns and facts are searched for candidates.' },
+	{ name: 'score', timing: '1.9 ms', text: 'Each candidate is scored; the ones left out are dropped at a named stage.' },
+	{ name: 'compose', timing: '0.4 ms', text: 'The sections are written into the window in render order.' }
 ];
 const lineage = [
 	'Howard, M. W., and Kahana, M. J. (2002). A distributed representation of temporal context. Journal of Mathematical Psychology, 46(3), 269–299.',
@@ -25,11 +31,11 @@ const lineage = [
 	"McClelland, J. L., McNaughton, B. L., and O'Reilly, R. C. (1995). Why there are complementary learning systems in the hippocampus and neocortex. Psychological Review, 102(3), 419–457.",
 	'Bjork, R. A., and Bjork, E. L. (1992). A new theory of disuse and an old theory of stimulus fluctuation. In A. F. Healy, S. M. Kosslyn and R. M. Shiffrin (Eds.), From Learning Processes to Cognitive Processes, Vol. 2, 35–67. Lawrence Erlbaum Associates.'
 ];
-const parts = ['turn', 'anatomy', 'rebuilt', 'facts', 'rules', 'dates', 'inspect', 'public', 'runtime', 'sources', 'measured'];
+const parts = ['turn', 'anatomy', 'rebuilt', 'facts', 'rules', ...(situated ? ['situation'] : []), 'dates', 'inspect', 'public', 'runtime', 'sources', 'measured'];
 /** A section's number in the order this stage shows the sections. */
 const numbered = (part: string): string => String(parts.indexOf(part) + 1).padStart(2, '0');
 ---
-<Page title="How it works" description="How Strikta rebuilds the context window before every request, what your runtime still does, and what has been measured.">
+<Page title="How it works" description="How Strikta rebuilds the context window before every request, what your runtime still does, and what has been measured." code={installed}>
 	<div class="opening">
 		<h1>How Strikta works</h1>
 		<p class="lead prose">Every request starts from an empty window. This page shows what fills it, in what order, and what has and has not been measured.</p>
@@ -37,8 +43,9 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 
 	<Section id="turn" number={numbered('turn')} label="A turn" title="A turn, step by step">
 		<ol class="flow">
-			{stages.map((stage) => <li><span class="node">{stage.name}</span><span class="step">{stage.text}</span></li>)}
+			{stages.map((stage) => <li><span class="node">{installed ? `${stage.name} ${stage.timing}` : stage.name}</span><span class="step">{stage.text}</span></li>)}
 		</ol>
+		{installed && <p class="caption">Timings of one synthetic turn.</p>}
 	</Section>
 
 	<Section id="anatomy" number={numbered('anatomy')} label="Anatomy" title="What goes into the window">
@@ -47,8 +54,7 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 	</Section>
 
 	<Section id="rebuilt" number={numbered('rebuilt')} label="Rebuilt every turn" title="The window is rebuilt before every request">
-		<p class="prose">Hermes and OpenClaw keep one growing transcript and compact it as it nears the window's limit. Strikta keeps every turn verbatim and assembles a new window for each request: what matters now comes back word for word, and what doesn't is left out of this turn, not lost.</p>
-		<Replay replay={replay} />
+		<Rebuilt />
 	</Section>
 
 	<Section id="facts" number={numbered('facts')} label="Facts" title="Facts and corrections">
@@ -58,17 +64,23 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 
 	<Section id="rules" number={numbered('rules')} label="Rules" title="Standing rules">
 		<p class="prose">Standing rules are lasting instructions, such as 'always answer in metric units', kept per user. Every turn renders them as one block before the profile and the memories.{released('rules_default') ? '' : ' On in the chatbot preset.'}</p>
-		<Terminal text={blocks.rules} label="A standing-rules block" caption="A standing-rules block as the model receives it. Synthetic persona." />
+		<Terminal text={excerpt.rules} label="A standing-rules block" caption="A standing-rules block as the model receives it. Synthetic persona." wrap />
+		{listed !== undefined && <Terminal text={listed} label="strikta list-rules" caption="Real output of strikta list-rules on a synthetic persona. No real user data." />}
 	</Section>
+
+	{situated && (
+		<Section id="situation" number={numbered('situation')} label="Situation" title="What is still open">
+			<p class="prose">Open matters, one dated line each, so the agent knows what is still in progress.</p>
+		</Section>
+	)}
 
 	<Section id="dates" number={numbered('dates')} label="Dates" title="Dates stay attached">
 		<p class="prose">Each memory carries its date. Above the retrieved memories the window states the date of the question and tells the model that 'yesterday' in a memory means the day before that memory's date, and to write absolute dates.</p>
-		<Terminal text={blocks.dates} label="The date preamble and note" caption="The date preamble and note in the retrieved section. Synthetic persona." />
+		<Terminal text={excerpt.dates} label="The date preamble and note" caption="The date preamble and note in the retrieved section, when the reference date is rendered. Synthetic persona." wrap />
 	</Section>
 
 	<Section id="inspect" number={numbered('inspect')} label="Inspect" title="Inspect and replay">
-		<p class="prose">Each assembly writes an audit record: every memory the turn considered, served or not, its score terms, the stage that dropped it, and timings. By default the record holds hashes and counts, not your text.</p>
-		<p class="prose">Replay assembles a past turn again, optionally as of an earlier time or with changed settings, as a dry run: nothing is stored. A turn recorded in metadata-only mode cannot be replayed.</p>
+		<Inspect />
 	</Section>
 
 	<Section id="public" number={numbered('public')} label="Public repositories" title="Public repositories">
@@ -88,8 +100,15 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 	</Section>
 
 	<Section id="measured" number={numbered('measured')} label="Measured" title="What is and isn't measured">
-		<p class="prose">No ablation has been published, so we do not claim that any single mechanism above improves results. One cited mechanism, MINERVA-style cubing, does not take effect with the default E5 embeddings. Multilingual quality has not been measured. No measurement of Strikta has been published yet.</p>
+		<p class="prose">No ablation has been published, so we do not claim that any single mechanism above improves results. One cited mechanism, MINERVA-style cubing, does not take effect with the default E5 embeddings. Multilingual quality has not been measured. {compared ? <>The head-to-head is the only published measurement; <a href="/head-to-head">see its methods</a>.</> : 'No measurement of Strikta has been published yet.'}</p>
 	</Section>
+
+	{installed && (
+		<div class="actions">
+			<Button href="/docs/get-started/hermes/">Install for Hermes</Button>
+			<Button href="/docs/use/inspect-and-replay/" quiet>Inspect and replay docs</Button>
+		</div>
+	)}
 </Page>
 <style>
 	.opening h1 {
@@ -122,7 +141,7 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 		color: var(--s-color-ink-2);
 	}
 	.anatomy {
-		max-inline-size: 24rem;
+		max-inline-size: calc(var(--s-space-11) * 2);
 	}
 	.citations {
 		padding-inline-start: var(--s-space-5);

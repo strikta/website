@@ -7,8 +7,9 @@ const { title } = Astro.props;
 	<slot />
 </article>
 <style>
+	/* Four columns: one row of two in an 8-column body; a parent grid may set another span. */
 	.card {
-		grid-column: span var(--s-card-span);
+		grid-column: span 4;
 		padding-block-start: var(--s-space-4);
 		border-block-start: var(--s-line-strong) solid var(--s-color-ink);
 	}

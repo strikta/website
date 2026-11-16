@@ -3,8 +3,8 @@
 source: brand-guide
 rules: |-
   [Standing Rules]
-  Always answer in metric units.
-  Use YAML for configuration examples.
+  - Always answer in metric units.
+  - Use YAML for configuration examples.
   Follow every standing rule above in this reply unless the current message changes it.
 dates: |-
   Reference date: 2026-05-13 (the date this question was asked). Memories are sorted chronologically — use their dates for precise time-difference calculations.

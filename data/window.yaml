@@ -21,7 +21,7 @@
     - {name: conversation, start: 3411, end: 4602}
     - {name: message, start: 4603, end: 4790}
   candidates:
-    - {id: fact-0193, served: true, text: The team moved the weekly sync to Thursday.}
-    - {id: fact-0204, served: true, text: Persona Alex prefers YAML for config files.}
+    - {id: fact-0193, served: true, text: The weekly sync is on Thursday.}
+    - {id: fact-0204, served: true, text: Alex prefers YAML for config files.}
     - {id: fact-0191, served: false, stage: mmr}
     - {id: fact-0042, served: false, stage: score, text: The weekly sync is on Tuesday.}

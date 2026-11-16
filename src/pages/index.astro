@@ -4,11 +4,12 @@ import Card from '../components/Card.astro';
 import Code from '../components/Code.astro';
 import Hero from '../components/Hero.astro';
 import Limits from '../components/Limits.astro';
+import Inspect from '../components/Inspect.astro';
 import Quote from '../components/Quote.astro';
-import Replay from '../components/Replay.astro';
+import Rebuilt from '../components/Rebuilt.astro';
 import Section from '../components/Section.astro';
 import Terminal from '../components/Terminal.astro';
-import { findTurn, loadReplay } from '../diagram.ts';
+import { findTurn, loadDemo, loadReplay } from '../diagram.ts';
 import Page from '../layouts/Page.astro';
 import { enquiry } from '../navigation.ts';
 import { slot, slots } from '../slot.ts';
@@ -26,6 +27,8 @@ const rows = [
 	{ name: 'conversation', text: 'The most recent exchanges, verbatim.', shown: true },
 	{ name: 'message', text: 'The message being answered.', shown: true }
 ].filter((row) => row.shown);
+// From S2 the section shows real `strikta inspect-turn` output; until then the hand-drawn candidates of the synthetic turn.
+const output = installed ? loadDemo(root, 'inspect-turn.txt') : undefined;
 const candidates = findTurn(root, replay.to)
 	.candidates.map(({ id, served, stage, text }) => `${served ? '■' : '□'} ${id.padEnd(11)}${(served ? 'served' : `dropped at ${stage ?? '-'}`).padEnd(18)}${text ?? ''}`.trimEnd())
 	.join('\n');
@@ -38,12 +41,11 @@ const parts = ['rebuilt', 'window', 'inspect', 'egress', 'runtimes', 'limits'];
 /** A section's number in the order this stage shows the sections. */
 const numbered = (part: string): string => String(parts.indexOf(part) + 1).padStart(2, '0');
 ---
-<Page description="Strikta is an open-source context engine for LLM agents: it rebuilds the whole context window before every request and never summarises what it stores.">
+<Page description="Strikta, an open-source context engine for LLM agents, rebuilds the context window before every request from verbatim history and never summarises it." code={installed}>
 	<Hero />
 
 	<Section id="rebuilt" number={numbered('rebuilt')} label="Rebuilt every turn" title="The window is rebuilt before every request">
-		<p class="prose">Hermes and OpenClaw keep one growing transcript and compact it as it nears the window's limit. Strikta keeps every turn verbatim and assembles a new window for each request: what matters now comes back word for word, and what doesn't is left out of this turn, not lost.</p>
-		<Replay replay={replay} />
+		<Rebuilt />
 	</Section>
 
 	<Section id="window" number={numbered('window')} label="The window" title="What goes into the window">
@@ -54,9 +56,11 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 	</Section>
 
 	<Section id="inspect" number={numbered('inspect')} label="Inspect" title="Inspect any turn">
-		<p class="prose">Each assembly writes an audit record: every memory the turn considered, served or not, its score terms, the stage that dropped it, and timings. By default the record holds hashes and counts, not your text.</p>
-		<p class="prose">Replay assembles a past turn again, optionally as of an earlier time or with changed settings, as a dry run: nothing is stored. A turn recorded in metadata-only mode cannot be replayed.</p>
-		<Terminal text={candidates} label={`Candidates for turn ${replay.to}`} caption={`Candidates for turn ${replay.to}: ■ served, □ dropped, with the stage that dropped it. Synthetic persona.`} />
+		{output !== undefined && <p class="prose"><code>strikta inspect-turn</code> prints one assembled turn: each section with its byte range and origin, every candidate with its score terms and the stage that dropped it, and stage timings.</p>}
+		<Inspect />
+		{output === undefined
+			? <Terminal text={candidates} label={`Candidates for turn ${replay.to}`} caption={`Candidates for turn ${replay.to}: ■ served, □ dropped, with the stage that dropped it. Synthetic persona.`} />
+			: <Terminal text={output} label={`strikta inspect-turn ${replay.to}`} caption="Real output of strikta inspect-turn on a synthetic persona. No real user data." />}
 	</Section>
 
 	<Section id="egress" number={numbered('egress')} label="Egress" title="What leaves your machine">
@@ -133,6 +137,11 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 		grid-template-columns: subgrid;
 		row-gap: var(--s-space-6);
 	}
+	@media (min-width: 160rem) {
+		.cards > :global(.card:last-child) {
+			grid-column: span 3;
+		}
+	}
 	.install {
 		display: grid;
 		gap: var(--s-space-4);
@@ -158,8 +167,14 @@ const numbered = (part: string): string => String(parts.indexOf(part) + 1).padSt
 		margin: 0;
 	}
 	@media (min-width: 40rem) {
+		.rows {
+			display: grid;
+			grid-template-columns: max-content minmax(0, 1fr);
+			column-gap: var(--s-gutter);
+		}
 		.rows div {
-			grid-template-columns: 9rem minmax(0, 1fr);
+			grid-column: 1 / -1;
+			grid-template-columns: subgrid;
 		}
 	}
 	@media (min-width: 64rem) {

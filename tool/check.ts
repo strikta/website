@@ -76,7 +76,7 @@ function built(targets: readonly string[], directory: string): readonly Finding[
 	const [dist = 'dist'] = targets;
 	const location = resolve(directory, dist);
 	const findings = existsSync(location)
-		? [...builtFindings(location, directory, localHosts(directory)), ...brandFindings(location)]
+		? [...builtFindings(location, directory, localHosts(directory)), ...brandFindings(location, directory)]
 		: [{ file: dist, line: 1, rule: 'built', fix: 'nothing built: run npm run build first', section: 'Commands' }];
 	return findings;
 }

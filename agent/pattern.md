@@ -38,7 +38,7 @@ const numbered = staged('/docs'); // byte ranges and timings are numbers: none a
 <Window turn="0418" ranges={numbered} caption="Turn 0418's window, in render order. Heights are bytes. Synthetic persona." />
 {released('situation') && <p>…</p>}
 ```
-The 1:6 cut (`Cut.astro`, `data-angle`) appears at most once per view; display type only in `Hero.astro`; `npm run test:built` scans the built stylesheets for literal colours and lengths.
+The 1:6 cut (`Cut.astro`, `data-angle`) appears at most once per view; display type only in `Hero.astro`; `npm run test:built` scans the built stylesheets for literal colours and px lengths.
 
 ## Legal page
 `src/pages/legal/[page].astro` builds one page for each staged entry of `legal` in `src/navigation.ts` under `/legal/`; an entry elsewhere, such as `/withdraw`, has its own page file, like `/security`. Each is rendered by `src/components/Legal.astro` from `exportedText(file)`, which fills the placeholders the export maps to slots. Legal text never goes through Markdown: Markdown would change typography and line joins. `tool/legal.ts` splits the file on its `##` headings and keeps every clause line as it is; only list items (`- `), table rows (`| … |`) and the file's own `**strong**` and `` `code` `` runs become markup, through `Block.astro` and `Clause.astro`, as escaped text; a backslash-escaped mark such as `\*` shows without its backslash.

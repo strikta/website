@@ -50,6 +50,15 @@ test('the home hero shows its sections in render order and then opens the slit, 
 	expect(await slit.evaluate((path) => [getComputedStyle(path).animationName, getComputedStyle(path).transform].join(' '))).toBe('none none');
 });
 
+test('the home page\'s largest contentful paint is the unanimated headline at 1440 px, and unanimated hero text at 390 px', async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/');
+	expect(await largestPaint(page)).toBe('H1#headline');
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/');
+	expect(await largestPaint(page)).toMatch(/^(?:H1#headline|P\.sub\b.*)$/u);
+});
+
 for (const route of pages) {
 	test(`${route} uses the 1:6 angle at most once per view and gives every control a 44 px target`, async ({ page }) => {
 		await page.goto(route);
@@ -62,10 +71,12 @@ for (const route of pages) {
 		expect(small).toEqual([]);
 	});
 
-	test(`${route} reflows to one column at 320 px wide, as at 400 % zoom`, async ({ page }) => {
+	test(`${route} reflows to one column at 320 px wide, as at 400 % zoom, and scrolls sideways only in focusable regions`, async ({ page }) => {
 		await page.setViewportSize({ width: 320, height: 256 });
 		await page.goto(route);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+		const unreachable = await page.locator('main *').evaluateAll((elements: Element[]) => elements.filter((element) => element.scrollWidth > element.clientWidth && ['auto', 'scroll'].includes(getComputedStyle(element).overflowX) && !(element instanceof HTMLElement && element.tabIndex >= 0)).map((element) => [element.tagName, ...element.classList].join('.')));
+		expect(unreachable).toEqual([]);
 	});
 }
 
@@ -97,4 +108,21 @@ function watchPolicy(page: Page): readonly string[] {
 		}
 	});
 	return violations;
+}
+
+/** The largest contentful paint's element as `TAG#id` or `TAG.class`, its nearest heading or paragraph, once it has no animation. */
+async function largestPaint(page: Page): Promise<string> {
+	const element = await page.evaluate(async () => new Promise<string>((resolve) => {
+		new PerformanceObserver((observed) => {
+			const [entry] = observed.getEntries().slice(-1);
+			const painted = entry instanceof LargestContentfulPaint ? entry.element?.closest('h1, p') : undefined;
+			if (painted === null || painted === undefined || getComputedStyle(painted).animationName !== 'none') {
+				resolve('none');
+				return;
+			}
+			const name = painted.id === '' ? `.${[...painted.classList].join('.')}` : `#${painted.id}`;
+			resolve(`${painted.tagName}${name}`);
+		}).observe({ type: 'largest-contentful-paint', buffered: true });
+	}));
+	return element;
 }

@@ -4,8 +4,6 @@ import { parse } from 'yaml';
 import * as zod from 'zod';
 
 const ROOT_SIZE = 16;
-/** A card spans this many columns, or a third of the grid where that is wider. */
-const CARD_SPAN = 4;
 const pair = zod.tuple([zod.number(), zod.number()]);
 const palette = zod.record(zod.string(), zod.string());
 const tokenSchema = zod.object({
@@ -84,7 +82,7 @@ function brand(tokens: Tokens): readonly string[] {
 function columns(tokens: Tokens): readonly string[] {
 	const widths = Object.entries(tokens.grid.columns).sort(([first], [second]) => Number(first) - Number(second));
 	const rules = widths.map(([width, count]) => {
-		const rule = block(':root', [`--s-columns: ${String(count)};`, `--s-card-span: ${String(Math.max(CARD_SPAN, Math.floor(count / 3)))};`]);
+		const rule = block(':root', [`--s-columns: ${String(count)};`]);
 		const scoped = width === '0' ? rule : `@media (min-width: ${width}rem) {\n${rule}}\n`;
 		return scoped;
 	});

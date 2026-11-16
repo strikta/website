@@ -22,7 +22,7 @@ const blockSchema = zod.object({ source, rules: zod.string().min(1), dates: zod.
 export type Turn = zod.infer<typeof turnSchema>;
 export type Replay = zod.infer<typeof replaySchema>;
 export type Fact = zod.infer<typeof factSchema>;
-export type Blocks = zod.infer<typeof blockSchema>;
+export type Excerpt = zod.infer<typeof blockSchema>;
 
 /** The synthetic turns that the window diagrams draw, from `data/window.yaml`. */
 function loadTurns(root: string): readonly Turn[] {
@@ -57,10 +57,20 @@ export function loadFacts(root: string): readonly Fact[] {
 }
 
 /** The synthetic window text of the standing-rules block and the dates, from `data/block.yaml`. */
-export function loadBlocks(root: string): Blocks {
-	const blocks = blockSchema.parse(readData(root, 'block.yaml'));
-	generated(root, 'block.yaml', blocks.source);
-	return blocks;
+export function loadExcerpt(root: string): Excerpt {
+	const excerpt = blockSchema.parse(readData(root, 'block.yaml'));
+	generated(root, 'block.yaml', excerpt.source);
+	return excerpt;
+}
+
+/** Real product output on the synthetic persona, such as `demo/inspect-turn.txt`, or a build failure that says how to fix it. */
+export function loadDemo(root: string, file: string): string {
+	const path = join(root, 'demo', file);
+	if (!existsSync(path)) {
+		throw new Error(`No demo/${file}: the release stage shows real output; run the demo generator at the release tag.`);
+	}
+	const output = readFileSync(path, 'utf8').trimEnd();
+	return output;
 }
 
 /** The `/diagram.css` rules: each window's row heights proportional to bytes with its row count, and each fact's validity. */

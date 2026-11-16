@@ -2,9 +2,8 @@
 import type { Fact } from '../diagram.ts';
 type Props = { facts: readonly Fact[]; caption?: string };
 const { facts, caption } = Astro.props;
-const rows = facts.map((fact, index) => {
-	const previous = index > 0 ? facts[index - 1] : undefined;
-	const row = { ...fact, closes: fact.successor !== undefined && facts[index + 1]?.id === fact.successor, follows: previous?.successor === fact.id };
+const rows = facts.map((fact) => {
+	const row = { ...fact, closes: facts.some(({ id }) => id === fact.successor), follows: facts.some(({ successor }) => successor === fact.id) };
 	return row;
 });
 ---
@@ -30,6 +29,9 @@ const rows = facts.map((fact, index) => {
 		margin: 0;
 	}
 	ul {
+		display: grid;
+		grid-template-columns: max-content max-content minmax(0, 1fr);
+		column-gap: var(--s-space-4);
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -37,7 +39,8 @@ const rows = facts.map((fact, index) => {
 	}
 	li {
 		display: grid;
-		grid-template-columns: max-content max-content minmax(0, 1fr);
+		grid-column: 1 / -1;
+		grid-template-columns: subgrid;
 		gap: var(--s-space-2) var(--s-space-4);
 		padding-block: var(--s-space-2);
 		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
@@ -105,8 +108,10 @@ const rows = facts.map((fact, index) => {
 		inset-block: calc(-1 * var(--s-space-2)) calc(100% - var(--s-space-2));
 	}
 	@media (min-width: 40rem) {
+		ul {
+			grid-template-columns: max-content max-content minmax(0, 1fr) minmax(0, 1fr);
+		}
 		li {
-			grid-template-columns: 7em 7em minmax(0, 1fr) minmax(0, 1fr);
 			align-items: start;
 		}
 		.track {

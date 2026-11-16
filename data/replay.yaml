@@ -4,5 +4,5 @@ source: brand-guide
 from: '0417'
 to: '0418'
 lines:
-  - {change: removed, text: fact-0042 Sync on Tuesday.}
-  - {change: added, text: fact-0193 Sync on Thursday.}
+  - {change: removed, text: fact-0042 The weekly sync is on Tuesday.}
+  - {change: added, text: fact-0193 The weekly sync is on Thursday.}

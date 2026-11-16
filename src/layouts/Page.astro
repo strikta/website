@@ -2,8 +2,9 @@
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { pageMeta } from '../meta.ts';
-type Props = { title?: string; description: string; noindex?: boolean };
-const { title, description, noindex } = Astro.props;
+// `code` marks a page with a Code block: it loads /copy.js once for all its copy buttons.
+type Props = { title?: string; description: string; noindex?: boolean; code?: boolean };
+const { title, description, noindex, code } = Astro.props;
 const meta = pageMeta({ title, description, path: Astro.url.pathname });
 ---
 <!doctype html>
@@ -30,6 +31,7 @@ const meta = pageMeta({ title, description, path: Astro.url.pathname });
 		<link rel="preload" href="/font/Inter-Latin.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="stylesheet" href="/token.css" />
 		<link rel="stylesheet" href="/diagram.css" />
+		{code === true && <script is:inline src="/copy.js" defer></script>}
 	</head>
 	<body>
 		<a class="skip" href="#main">Skip to content</a>

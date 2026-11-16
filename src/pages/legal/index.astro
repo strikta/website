@@ -1,6 +1,6 @@
 ---
 import Page from '../../layouts/Page.astro';
-import { legal, stagedLinks } from '../../navigation.ts';
+import { DRAFT, legal, stagedLinks } from '../../navigation.ts';
 import { exportedVersion } from '../../quote.ts';
 const pages = stagedLinks(legal).map((page) => ({ ...page, version: exportedVersion(page.file) }));
 ---
@@ -12,7 +12,7 @@ const pages = stagedLinks(legal).map((page) => ({ ...page, version: exportedVers
 			{pages.map((page) => (
 				<tr>
 					<th scope="row"><a href={page.route}>{page.label}</a></th>
-					<td data-label="Status"><span class="badge">{page.draft ? 'Draft, not in force' : 'In force'}</span></td>
+					<td data-label="Status">{page.draft && <span class="badge">{DRAFT}</span>}</td>
 					<td data-label="Version" class="version">{page.version}</td>
 				</tr>
 			))}
@@ -33,6 +33,11 @@ const pages = stagedLinks(legal).map((page) => ({ ...page, version: exportedVers
 		font-weight: 500;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
+	}
+	@media (max-width: 39.99rem) {
+		.documents td:empty {
+			display: none;
+		}
 	}
 	.version {
 		font-family: var(--s-font-mono);

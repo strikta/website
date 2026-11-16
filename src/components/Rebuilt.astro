@@ -1,0 +1,8 @@
+---
+// The rebuilt-every-turn copy and its replay figure, shared by the home page and /how-it-works.
+import { loadReplay } from '../diagram.ts';
+import Replay from './Replay.astro';
+const replay = loadReplay(process.cwd());
+---
+<p class="prose">Hermes and OpenClaw keep one growing transcript and compact it as it nears the window's limit. Strikta keeps every turn verbatim and assembles a new window for each request: what matters now comes back word for word, and what doesn't is left out of this turn, not lost.</p>
+<Replay replay={replay} />

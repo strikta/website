@@ -1,13 +1,13 @@
 ---
-// A rendered terminal frame: product output on synthetic data, scrolled inside a focusable, labelled region, never wrapped.
-type Props = { text: string; label: string; caption: string };
-const { text, label, caption } = Astro.props;
+// A rendered terminal frame: product output on synthetic data, scrolled inside a focusable, labelled region; `wrap` wraps window prose for display only.
+type Props = { text: string; label: string; caption: string; wrap?: boolean };
+const { text, label, caption, wrap } = Astro.props;
 const STATUS = /(?<status>\[(?:ok {2}|FAIL|warn|info)\])/u;
 const tones: Readonly<Record<string, string>> = { '[ok  ]': 'ok', '[FAIL]': 'fail', '[warn]': 'warn', '[info]': 'info' };
 const runs = text.split(STATUS).map((run) => ({ run, tone: tones[run] }));
 ---
 <figure class="frame">
-	<pre class="terminal scheme-dark" tabindex="0" role="region" aria-label={label}><code>{runs.map(({ run, tone }) => (tone === undefined ? run : <span class={tone}>{run}</span>))}</code></pre>
+	<pre class:list={['terminal scheme-dark', { wrap: wrap === true }]} tabindex="0" role="region" aria-label={label}><code>{runs.map(({ run, tone }) => (tone === undefined ? run : <span class={tone}>{run}</span>))}</code></pre>
 	<figcaption class="caption">{caption}</figcaption>
 </figure>
 <style>
@@ -28,6 +28,10 @@ const runs = text.split(STATUS).map((run) => ({ run, tone: tones[run] }));
 		font-size: var(--s-text-sm);
 		line-height: var(--s-leading-mono);
 		white-space: pre;
+	}
+	.wrap {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 	code {
 		font-size: 1em;

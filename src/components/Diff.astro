@@ -1,0 +1,51 @@
+---
+import type { Replay } from '../diagram.ts';
+type Props = { replay: Replay };
+const { replay } = Astro.props;
+const words = { added: 'Added', removed: 'Removed' } as const;
+const signs = { added: '+', removed: '−' } as const;
+---
+<div class="diff" role="group" aria-label={`Replay of turn ${replay.to} against turn ${replay.from}`}>
+	{replay.lines.map(({ change, text }) => (
+		<p class={change}>
+			<span class="sign" aria-hidden="true">{signs[change]}</span>
+			<span class="visually-hidden">{words[change]}:</span>
+			<span class="text" dir="auto">{text}</span>
+		</p>
+	))}
+</div>
+<style>
+	.diff {
+		margin: 0;
+		border: var(--s-line-hair) solid var(--s-color-rule);
+		font-family: var(--s-font-mono);
+		font-size: var(--s-text-sm);
+		line-height: var(--s-leading-mono);
+	}
+	p {
+		display: grid;
+		grid-template-columns: var(--s-space-6) minmax(0, 1fr);
+		margin: 0;
+		padding-block: var(--s-space-1);
+		padding-inline-end: var(--s-space-3);
+		border-inline-start: var(--s-line-strong) solid transparent;
+	}
+	.sign {
+		text-align: center;
+	}
+	.added {
+		border-inline-start-color: var(--s-color-ink);
+		background: var(--s-color-surface);
+	}
+	.removed {
+		color: var(--s-color-fail);
+	}
+	.removed .text {
+		text-decoration: line-through;
+	}
+	@media (forced-colors: active) {
+		.added {
+			border-inline-start-color: CanvasText;
+		}
+	}
+</style>

@@ -1,0 +1,51 @@
+---
+// A command or file to copy: the Copy button stays hidden until /copy.js runs, so without script there is no dead control; the page
+// loads /copy.js once (`Page` with `code`), and the status line announces the outcome to screen readers.
+type Props = { text: string; label: string };
+const { text, label } = Astro.props;
+---
+<div class="code">
+	<pre tabindex="0" role="region" aria-label={label}><code>{text}</code></pre>
+	<button class="copy" type="button" data-copy hidden>Copy</button>
+	<span class="visually-hidden" role="status" data-copy-status></span>
+</div>
+<style>
+	.code {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--s-space-3);
+		border: var(--s-line-hair) solid var(--s-color-rule);
+		background: var(--s-color-surface);
+	}
+	pre {
+		flex: 1;
+		min-inline-size: 0;
+		margin: 0;
+		padding: var(--s-space-4);
+		overflow-x: auto;
+		font-family: var(--s-font-mono);
+		font-size: var(--s-text-sm);
+		line-height: var(--s-leading-mono);
+	}
+	code {
+		font-size: 1em;
+	}
+	.copy {
+		min-block-size: var(--s-target);
+		padding-inline: var(--s-space-4);
+		border: 0;
+		border-inline-start: var(--s-line-hair) solid var(--s-color-rule);
+		background: transparent;
+		color: var(--s-color-ink);
+		font: inherit;
+		font-size: var(--s-text-sm);
+		cursor: pointer;
+	}
+	.copy:hover {
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+	}
+	.copy[hidden] {
+		display: none;
+	}
+</style>

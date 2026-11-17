@@ -1,0 +1,41 @@
+---
+// Two turns either side of the cut, and the replay diff between them; it fills the content columns of a Section.
+import type { Replay } from '../diagram.ts';
+import Boundary from './Boundary.astro';
+import Diff from './Diff.astro';
+type Props = { replay: Replay };
+const { replay } = Astro.props;
+---
+<figure class="replay">
+	<div class="stacks"><Boundary before={replay.from} after={replay.to} /></div>
+	<div class="lines"><Diff replay={replay} /></div>
+	<figcaption class="caption">Turns {replay.from} and {replay.to}, assembled from the same store. The retrieved section changed because the user moved the weekly sync. Synthetic persona.</figcaption>
+</figure>
+<style>
+	.replay {
+		display: grid;
+		grid-template-columns: subgrid;
+		row-gap: var(--s-space-5);
+		margin: 0;
+	}
+	.replay > * {
+		grid-column: 1 / -1;
+	}
+	@media (min-width: 64rem) {
+		.replay > .stacks {
+			grid-column: 1 / span 5;
+		}
+		.replay > .lines {
+			grid-column: 6 / -1;
+			align-self: center;
+		}
+	}
+	@media (min-width: 160rem) {
+		.replay > .stacks {
+			grid-column: 1 / span 6;
+		}
+		.replay > .lines {
+			grid-column: 7 / -1;
+		}
+	}
+</style>

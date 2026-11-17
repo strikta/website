@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
+import { brandFindings, displayFindings } from './brand.ts';
 import { builtFindings } from './built.ts';
 import { contrastFindings, filenameFindings, foundingFindings } from './data.ts';
 import { exportFindings } from './export.ts';
@@ -57,7 +58,8 @@ function scan(files: readonly string[], directory: string): readonly Finding[] {
 	const fileFindings = texts.flatMap(({ path, text }) => [
 		...boundaryFindings(path, path, text, hosts),
 		...(DATA_RULES.get(path)?.(path, text) ?? []),
-		...(path.startsWith('src/components/') ? filenameFindings(path) : [])
+		...(path.startsWith('src/components/') ? filenameFindings(path) : []),
+		...displayFindings(path, text)
 	]);
 	const exported = paths.some((path) => path.startsWith(EXPORT)) ? exportFindings(join(directory, EXPORT), EXPORT) : [];
 	const findings = [...fileFindings, ...exported];
@@ -74,7 +76,7 @@ function built(targets: readonly string[], directory: string): readonly Finding[
 	const [dist = 'dist'] = targets;
 	const location = resolve(directory, dist);
 	const findings = existsSync(location)
-		? builtFindings(location, directory, localHosts(directory))
+		? [...builtFindings(location, directory, localHosts(directory)), ...brandFindings(location, directory)]
 		: [{ file: dist, line: 1, rule: 'built', fix: 'nothing built: run npm run build first', section: 'Commands' }];
 	return findings;
 }

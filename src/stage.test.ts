@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { workspace } from '../tool/fixture.ts';
-import { covers, loadStage, priced, stageRoutes, withheld } from './stage.ts';
+import { covers, happened, loadStage, priced, stageRoutes, withheld } from './stage.ts';
 
 const table = [
 	'current: s1',
@@ -39,4 +39,12 @@ test.each([
 	['/pro', '/pro/checkout', false]
 ])('the entry %s covers %s: %s', (entry, route, expected) => {
 	expect(covers(entry, route)).toBe(expected);
+});
+
+test('an event shows its sections only once it has happened, and an event the table does not name fails the build', () => {
+	const tree = workspace({ 'data/stage.yaml': `${table}events: {zzz_done: true, zzz_waiting: false}\n` })
+	const stage = loadStage(tree.directory);
+	tree.remove();
+	expect(stage === undefined ? [] : [happened(stage, 'zzz_done'), happened(stage, 'zzz_waiting')]).toEqual([true, false]);
+	expect(() => stage !== undefined && happened(stage, 'zzz_unknown')).toThrow('No event "zzz_unknown"');
 });

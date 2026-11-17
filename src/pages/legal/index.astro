@@ -1,22 +1,46 @@
 ---
 import Page from '../../layouts/Page.astro';
-import { legal, stagedLinks } from '../../navigation.ts';
-const pages = stagedLinks(legal);
+import { DRAFT, legal, stagedLinks } from '../../navigation.ts';
+import { exportedVersion } from '../../quote.ts';
+const pages = stagedLinks(legal).map((page) => ({ ...page, version: exportedVersion(page.file) }));
 ---
 <Page title="Legal" description="The legal texts of Strikta and Strikta Pro.">
 	<h1>Legal</h1>
-	<ul class="pages">
-		{pages.map((page) => <li><a href={page.route}>{page.label}</a>{page.draft && <span class="muted"> (draft, not in force)</span>}</li>)}
-	</ul>
+	<table class="compare documents">
+		<thead><tr><th scope="col">Document</th><th scope="col">Status</th><th scope="col">Version</th></tr></thead>
+		<tbody>
+			{pages.map((page) => (
+				<tr>
+					<th scope="row"><a href={page.route}>{page.label}</a></th>
+					<td data-label="Status">{page.draft && <span class="badge">{DRAFT}</span>}</td>
+					<td data-label="Version" class="version">{page.version}</td>
+				</tr>
+			))}
+		</tbody>
+	</table>
 </Page>
 <style>
-	.pages {
-		padding: 0;
-		list-style: none;
-	}
-	.pages a {
+	.documents a {
 		display: inline-flex;
 		align-items: center;
 		min-block-size: var(--s-target);
+	}
+	.badge {
+		display: inline-block;
+		padding: var(--s-space-1) var(--s-space-2);
+		border: var(--s-line-hair) solid var(--s-color-ink);
+		font-size: var(--s-text-xs);
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	@media (max-width: 39.99rem) {
+		.documents td:empty {
+			display: none;
+		}
+	}
+	.version {
+		font-family: var(--s-font-mono);
+		font-size: var(--s-text-sm);
 	}
 </style>

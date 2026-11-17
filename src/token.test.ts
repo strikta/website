@@ -24,9 +24,9 @@ test('space, lines, radius, target, prose width and the column count and card sp
 	expect(style).toContain('--s-radius: 0;');
 	expect(style).toContain('--s-target: max(44px, 2.75rem);');
 	expect(style).toContain('--s-prose: 72ch;');
-	expect(style).toContain(':root {\n\t--s-columns: 4;\n\t--s-card-span: 4;\n}');
-	expect(style).toContain('@media (min-width: 64rem) {\n:root {\n\t--s-columns: 12;\n\t--s-card-span: 4;\n}');
-	expect(style).toContain('@media (min-width: 160rem) {\n:root {\n\t--s-columns: 16;\n\t--s-card-span: 5;\n}');
+	expect(style).toContain(':root {\n\t--s-columns: 4;\n}');
+	expect(style).toContain('@media (min-width: 64rem) {\n:root {\n\t--s-columns: 12;\n}');
+	expect(style).toContain('@media (min-width: 160rem) {\n:root {\n\t--s-columns: 16;\n}');
 });
 
 test('the display headline, the system angle, the grain and the motion timings are set', () => {

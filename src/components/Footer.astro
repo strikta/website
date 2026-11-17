@@ -18,7 +18,7 @@ const company = slot(slots, 'company.name');
 				<nav aria-label={column.title}>
 					<h2 class="label">{column.title}</h2>
 					<ul>
-						{column.links.map((link) => <li><a href={link.route}>{link.label}</a></li>)}
+						{column.links.map((link) => <li><a href={link.route}><span>{link.label}{'draft' in link && link.draft && <span class="draft">{' (draft)'}</span>}</span></a></li>)}
 					</ul>
 				</nav>
 			))}
@@ -39,19 +39,24 @@ const company = slot(slots, 'company.name');
 			border-block-start: var(--s-line-hair) solid var(--s-color-rule);
 		}
 	}
-	.inner :global(.lockup) {
+	.inner {
+		display: grid;
+		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
+		gap: var(--s-space-6) var(--s-gutter);
+		align-items: start;
+		padding: var(--s-space-7) var(--s-margin);
+	}
+	.inner > :global(*) {
+		grid-column: 1 / -1;
+	}
+	.inner > :global(.lockup) {
 		block-size: 1.5rem;
 		inline-size: auto;
 	}
-	.inner {
-		display: grid;
-		gap: var(--s-space-6);
-		padding: var(--s-space-7) var(--s-margin);
-	}
 	.columns {
 		display: grid;
-		grid-template-columns: repeat(var(--s-columns), minmax(0, 1fr));
-		gap: var(--s-space-5) var(--s-gutter);
+		grid-template-columns: subgrid;
+		row-gap: var(--s-space-5);
 	}
 	.columns nav {
 		grid-column: span 2;
@@ -61,9 +66,33 @@ const company = slot(slots, 'company.name');
 			grid-column: span 4;
 		}
 	}
+	@media (min-width: 64rem) {
+		.inner > :global(*) {
+			grid-column: 5 / -1;
+		}
+		.inner > :global(.lockup) {
+			grid-row: 1 / span 3;
+			grid-column: 1 / span 4;
+		}
+		.columns nav {
+			grid-column: span 2;
+		}
+		.columns nav:last-child {
+			grid-column: span 4;
+		}
+	}
 	@media (min-width: 160rem) {
+		.inner > :global(*) {
+			grid-column: 6 / -1;
+		}
+		.inner > :global(.lockup) {
+			grid-column: 1 / span 5;
+		}
 		.columns nav {
 			grid-column: span 3;
+		}
+		.columns nav:last-child {
+			grid-column: span 5;
 		}
 	}
 	h2 {
@@ -85,6 +114,9 @@ const company = slot(slots, 'company.name');
 	}
 	.columns a:hover {
 		text-decoration: underline;
+	}
+	.draft {
+		color: var(--s-color-muted);
 	}
 	.notice {
 		max-inline-size: calc(var(--s-prose) * 2);

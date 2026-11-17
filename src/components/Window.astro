@@ -1,0 +1,89 @@
+---
+import { findTurn } from '../diagram.ts';
+type Props = { turn: string; caption?: string; mini?: boolean; ranges?: boolean };
+const { turn, caption, mini, ranges } = Astro.props;
+const { sections } = findTurn(process.cwd(), turn);
+const parts = sections.map(({ name, start, end }) => (ranges === true ? `${name}, bytes ${String(start)} to ${String(end)}` : name));
+const label = `The context window of turn ${turn}, in render order: ${parts.join('; ')}.`;
+---
+<figure class:list={['figure', { mini: mini === true }]}>
+	<div class="window" data-turn={turn} role="img" aria-label={label}>
+		{sections.map(({ name, start, end, selected }) => (
+			<div class:list={['section', { selected: selected === true }]}>
+				<span class="name">{name}</span>
+				{ranges === true && <span class="range">{start}–{end}</span>}
+			</div>
+		))}
+	</div>
+	{caption !== undefined && <figcaption class="caption">{caption}</figcaption>}
+</figure>
+<style>
+	.figure {
+		display: grid;
+		grid-template-rows: minmax(0, 1fr) auto;
+		gap: var(--s-space-3);
+		block-size: 100%;
+		margin: 0;
+	}
+	.window {
+		display: grid;
+		min-block-size: calc(var(--s-space-10) * 2);
+	}
+	.mini .window {
+		inline-size: min(9rem, 40vw);
+		min-block-size: calc(var(--s-space-9) * 2);
+	}
+	.section {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--s-space-3);
+		padding-inline: var(--s-space-2);
+		border: var(--s-line-hair) solid var(--s-color-ink);
+		font-size: var(--s-text-xs);
+		line-height: var(--s-leading-tight);
+		overflow: hidden;
+	}
+	.section + .section {
+		margin-block-start: calc(-1 * var(--s-line-hair));
+	}
+	.section:nth-child(1) {
+		--order: 1;
+	}
+	.section:nth-child(2) {
+		--order: 2;
+	}
+	.section:nth-child(3) {
+		--order: 3;
+	}
+	.section:nth-child(4) {
+		--order: 4;
+	}
+	.section:nth-child(5) {
+		--order: 5;
+	}
+	.section:nth-child(6) {
+		--order: 6;
+	}
+	.section:nth-child(7) {
+		--order: 7;
+	}
+	.selected {
+		background: var(--s-color-ink);
+		color: var(--s-color-paper);
+	}
+	.range {
+		font-family: var(--s-font-mono);
+		font-variant-numeric: tabular-nums;
+	}
+	@media (forced-colors: active) {
+		.section {
+			border-color: CanvasText;
+		}
+		.selected {
+			forced-color-adjust: none;
+			background: CanvasText;
+			color: Canvas;
+		}
+	}
+</style>

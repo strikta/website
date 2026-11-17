@@ -26,17 +26,16 @@ export const header: readonly Link[] = [
 	{ route: '/docs', label: 'Docs' },
 	{ route: '/how-it-works', label: 'How it works' },
 	{ route: '/head-to-head', label: 'Head-to-head' },
-	{ route: '/pro', label: 'Pro' },
-	{ route: '/company-licence', label: 'Company licence' }
+	{ route: '/pro', label: 'Pro' }
 ];
 
 export const product: readonly Link[] = [
 	{ route: '/', label: 'Home' },
 	{ route: '/how-it-works', label: 'How it works' },
-	{ route: '/head-to-head', label: 'Head-to-head' },
 	{ route: '/pro', label: 'Strikta Pro' },
 	{ route: '/company-licence', label: 'Company licence' },
-	{ route: '/docs', label: 'Docs' }
+	{ route: '/docs', label: 'Docs' },
+	{ route: '/head-to-head', label: 'Head-to-head' }
 ];
 
 /** The mark a draft legal page shows in its <main>. */

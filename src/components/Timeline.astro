@@ -1,0 +1,139 @@
+---
+import type { Fact } from '../diagram.ts';
+type Props = { facts: readonly Fact[]; caption?: string };
+const { facts, caption } = Astro.props;
+const rows = facts.map((fact) => {
+	const row = { ...fact, closes: facts.some(({ id }) => id === fact.successor), follows: facts.some(({ successor }) => successor === fact.id) };
+	return row;
+});
+---
+<figure class="timeline">
+	<ul>
+		{rows.map(({ id, state, text, end, successor, closes, follows }) => (
+			<li class={`state-${state}`}>
+				<span class="id">{id}</span>
+				<span class="state">{state}</span>
+				<span class="text"><span dir="auto">{text}</span>{successor !== undefined && <span class="successor"> → superseded by {successor}</span>}</span>
+				<span class="track" data-fact={id} aria-hidden="true">
+					<span class:list={['bar', { ended: end !== undefined }]}></span>
+					{closes && <span class="leaves"></span>}
+					{follows && <span class="arrives"></span>}
+				</span>
+			</li>
+		))}
+	</ul>
+	{caption !== undefined && <figcaption class="caption">{caption}</figcaption>}
+</figure>
+<style>
+	.timeline {
+		margin: 0;
+	}
+	ul {
+		display: grid;
+		grid-template-columns: max-content max-content minmax(0, 1fr);
+		column-gap: var(--s-space-4);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: var(--s-text-sm);
+	}
+	li {
+		display: grid;
+		grid-column: 1 / -1;
+		grid-template-columns: subgrid;
+		gap: var(--s-space-2) var(--s-space-4);
+		padding-block: var(--s-space-2);
+		border-block-end: var(--s-line-hair) solid var(--s-color-rule);
+	}
+	.id {
+		font-family: var(--s-font-mono);
+	}
+	.state-closed,
+	.state-retracted,
+	.state-superseded {
+		color: var(--s-color-muted);
+	}
+	.state-retracted [dir] {
+		text-decoration: line-through;
+	}
+	.track {
+		position: relative;
+		grid-column: 1 / -1;
+		min-block-size: var(--s-space-5);
+	}
+	.track::before {
+		position: absolute;
+		inset-inline: 0;
+		inset-block-start: calc(var(--s-space-3) - var(--s-line-hair) / 2);
+		border-block-start: var(--s-line-hair) solid var(--s-color-rule);
+		content: '';
+	}
+	.bar {
+		position: absolute;
+		inset-block-start: var(--s-space-2);
+		inset-inline-start: calc(var(--start) * 1%);
+		inline-size: calc((var(--end) - var(--start)) * 1%);
+		block-size: var(--s-space-2);
+		background: var(--s-color-ink);
+	}
+	.state-closed .bar,
+	.state-superseded .bar {
+		background: var(--s-color-muted);
+	}
+	.state-retracted .bar {
+		border: var(--s-line-hair) solid var(--s-color-muted);
+		background: transparent;
+	}
+	.ended::after {
+		position: absolute;
+		inset-inline-end: calc(-1 * var(--s-line-strong));
+		inset-block: calc(-1 * var(--s-space-1));
+		inline-size: var(--s-line-strong);
+		background: var(--s-color-ink);
+		content: '';
+	}
+	.leaves,
+	.arrives {
+		display: none;
+		position: absolute;
+		inline-size: var(--s-line-hair);
+		background: var(--s-color-ink);
+	}
+	.leaves {
+		inset-inline-start: calc(var(--end) * 1%);
+		inset-block: var(--s-space-3) calc(-1 * var(--s-space-2));
+	}
+	.arrives {
+		inset-inline-start: calc(var(--start) * 1%);
+		inset-block: calc(-1 * var(--s-space-2)) calc(100% - var(--s-space-2));
+	}
+	@media (min-width: 40rem) {
+		ul {
+			grid-template-columns: max-content max-content minmax(0, 1fr) minmax(0, 1fr);
+		}
+		li {
+			align-items: start;
+		}
+		.track {
+			grid-column: auto;
+			align-self: stretch;
+		}
+		.leaves,
+		.arrives {
+			display: block;
+		}
+	}
+	@media (forced-colors: active) {
+		.bar,
+		.ended::after,
+		.leaves,
+		.arrives {
+			forced-color-adjust: none;
+			background: CanvasText;
+		}
+		.state-retracted .bar {
+			border-color: CanvasText;
+			background: Canvas;
+		}
+	}
+</style>

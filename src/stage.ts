@@ -6,6 +6,8 @@ import * as zod from 'zod';
 const stageSchema = zod
 	.object({
 		current: zod.string().min(1),
+		outcome: zod.enum(['pending', 'favourable', 'mixed', 'unfavourable']).default('pending'),
+		events: zod.record(zod.string(), zod.boolean()).default({}),
 		routes: zod.array(zod.object({ path: zod.string().startsWith('/'), stages: zod.array(zod.string()) }).strict()),
 		priced: zod.array(zod.string()).default([]),
 		withheld: zod.array(zod.object({ route: zod.string().startsWith('/'), stages: zod.array(zod.string()), quotes: zod.array(zod.string().min(1)) }).strict()).default([])
@@ -53,6 +55,21 @@ export function covers(entry: string, route: string): boolean {
 export function shown(route: string, quote: string): boolean {
 	const visible = stage !== undefined && !withheld(stage, route, quote);
 	return visible;
+}
+
+/** Whether a product event in `data/stage.yaml` has happened; an event the table does not name fails the build. */
+export function happened(table: Stage, event: string): boolean {
+	const state = table.events[event];
+	if (state === undefined) {
+		throw new Error(`No event "${event}" in data/stage.yaml: add it under events, false until it happens.`);
+	}
+	return state;
+}
+
+/** Whether a product event has happened, so the sections waiting for it are shown. */
+export function released(event: string): boolean {
+	const shownNow = stage !== undefined && happened(stage, event);
+	return shownNow;
 }
 
 /** Whether the current stage builds a page route; links to pages outside it are left out. */

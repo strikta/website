@@ -1,6 +1,8 @@
 $schema: https://unpkg.com/knip@6/schema.json
-# The guard runs from the agent hooks, which knip cannot see.
+# The guard runs from the agent hooks and the social image from the command line, which knip cannot see; the browser loads copy.js.
 entry:
   - tool/guard.ts
+  - tool/social.ts
+  - public/copy.js
 project:
   - "**/*.{ts,astro,js}"

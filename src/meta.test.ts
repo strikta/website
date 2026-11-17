@@ -20,15 +20,15 @@ test('a page title is followed by the site name, and a description over 155 char
 test('the sitemap lists the stage\'s pages only, without files, trees, the 404 page or the pages reached after paying', () => {
 	const tree = workspace({
 		'data/stage.yaml': [
-			'current: s3',
+			'current: stage2',
 			'routes:',
-			'  - {path: /, stages: [s3]}',
-			'  - {path: /zzz, stages: [s3]}',
+			'  - {path: /, stages: [stage2]}',
+			'  - {path: /zzz, stages: [stage2]}',
 			'  - {path: /zzz-later, stages: [s9]}',
-			'  - {path: /404, stages: [s3]}',
-			'  - {path: /pro/thanks, stages: [s3]}',
-			'  - {path: /robots.txt, stages: [s3]}',
-			'  - {path: /docs/**, stages: [s3]}',
+			'  - {path: /404, stages: [stage2]}',
+			'  - {path: /pro/thanks, stages: [stage2]}',
+			'  - {path: /robots.txt, stages: [stage2]}',
+			'  - {path: /docs/**, stages: [stage2]}',
 			''
 		].join('\n')
 	});

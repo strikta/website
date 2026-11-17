@@ -27,7 +27,7 @@ const rows = [
 	{ name: 'conversation', text: 'The most recent exchanges, verbatim.', shown: true },
 	{ name: 'message', text: 'The message being answered.', shown: true }
 ].filter((row) => row.shown);
-// From S2 the section shows real `strikta inspect-turn` output; until then the hand-drawn candidates of the synthetic turn.
+// From stage1 the section shows real `strikta inspect-turn` output; until then the hand-drawn candidates of the synthetic turn.
 const output = installed ? loadDemo(root, 'inspect-turn.txt') : undefined;
 const candidates = findTurn(root, replay.to)
 	.candidates.map(({ id, served, stage, text }) => `${served ? '■' : '□'} ${id.padEnd(11)}${(served ? 'served' : `dropped at ${stage ?? '-'}`).padEnd(18)}${text ?? ''}`.trimEnd())

@@ -24,20 +24,20 @@ Open now: docs versioning, founding-end instant and time zone, phone number on /
 The no-English-keyword rule of the engine governs how Strikta processes users' memory content; the price-word check on this site's own English copy is not such a path.
 
 ## Stages [provisional]
-`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. S1: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. The home hero's decorative window diagram may show its section labels and byte ranges. A draft legal page may show the price figures of its own exported text, and no other page or part of a page may show one. S1 starts only once the first export exists. Later stages are added when the founder starts them, not before.
+`data/stage.yaml` holds the current stage and the route table. A page outside the current stage must not be built; `npm run test:built` compares built routes with the table. `prelaunch`: legal pages, disclosures, privacy, reduced home; no prices, install commands or numbers. The home hero's decorative window diagram may show its section labels and byte ranges. A draft legal page may show the price figures of its own exported text, and no other page or part of a page may show one. `prelaunch` starts only once the first export exists. Later stages are added when the founder starts them, not before.
 
 ## Layout
 - `src/pages/`, `src/components/`, `src/layouts/`, `src/content/docs/` are the only `src` folders; no `lib/`, `utils/`, `helpers/`, `scripts/`.
 - `src/slot.ts`, `src/quote.ts`: data access. `data/`: YAML facts. `content/export/`: generated.
-- `service/`: the Hono + better-sqlite3 service (from S3). `tool/`: guard, content checker, import. `e2e/`: Playwright.
-- Docs come from the engine's release tag (from S2); fix docs text in the engine repository, not here.
+- `service/`: the Hono + better-sqlite3 service (from `stage2`). `tool/`: guard, content checker, import. `e2e/`: Playwright.
+- Docs come from the engine's release tag (from `stage1`); fix docs text in the engine repository, not here.
 
 ## Commands
 - Setup: Node 24.2 or later (the guard and checker need `import.meta.main`), `npm ci`, then `npx lefthook install`. Run `npm ci` before starting an agent: the guard needs `node_modules` and blocks every call without it.
 - `npm run dev` (Astro backgrounds itself for agents; `npx astro dev stop` when done), `npm run build`, `npm run preview`.
 - `npm run lint`, `npm run check`, `npm run test:unit`, `npm run test:built`, `npm run knip`.
 - Everything a PR needs: `npm run gate`. Run it before offering a PR; reproduce a CI failure locally before pushing again.
-- `npm run test:e2e`: Playwright with axe on every staged page (`npx playwright install --only-shell chromium` once). `npm run import-export -- <dir>`: the founder's import of a new export. Lighthouse CI (`test:perf`) and the docs fetch arrive with S2.
+- `npm run test:e2e`: Playwright with axe on every staged page (`npx playwright install --only-shell chromium` once). `npm run import-export -- <dir>`: the founder's import of a new export. Lighthouse CI (`test:perf`) and the docs fetch arrive with `stage1`.
 
 ## Code standards (TypeScript and .astro)
 Lint and type checks enforce most of these; a lint failure is a standards failure. These rules win over any general Python or underscore rule loaded from elsewhere. TypeScript stays on major 6 until the lint and Astro tooling support 7.

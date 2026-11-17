@@ -16,7 +16,7 @@ const excerpt = loadExcerpt(root);
 const installed = staged('/docs');
 const compared = staged('/head-to-head');
 const situated = released('situation');
-// From S2 the steps carry synthetic timings and the rules section shows real `strikta list-rules` output.
+// From stage1 the steps carry synthetic timings and the rules section shows real `strikta list-rules` output.
 const listed = installed ? loadDemo(root, 'list-rules.txt') : undefined;
 const stages = [
 	{ name: 'embed', timing: '4.1 ms', text: 'The current message is embedded on your machine.' },

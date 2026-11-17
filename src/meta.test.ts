@@ -24,7 +24,7 @@ test('the sitemap lists the stage\'s pages only, without files, trees, the 404 p
 			'routes:',
 			'  - {path: /, stages: [stage2]}',
 			'  - {path: /zzz, stages: [stage2]}',
-			'  - {path: /zzz-later, stages: [s9]}',
+			'  - {path: /zzz-later, stages: [later]}',
 			'  - {path: /404, stages: [stage2]}',
 			'  - {path: /pro/thanks, stages: [stage2]}',
 			'  - {path: /robots.txt, stages: [stage2]}',

@@ -26,10 +26,10 @@ test('a missing turn fails the build with the fix', () => {
 });
 
 test('hand-written diagrams pass while the stage publishes no release, and fail the build once it does', () => {
-	const before = workspace({ 'data/window.yaml': WINDOW, 'data/stage.yaml': 'current: s1\nroutes:\n  - {path: /, stages: [s1]}\n  - {path: /docs/**, stages: [s2]}\n' });
+	const before = workspace({ 'data/window.yaml': WINDOW, 'data/stage.yaml': 'current: prelaunch\nroutes:\n  - {path: /, stages: [prelaunch]}\n  - {path: /docs/**, stages: [stage1]}\n' });
 	expect(findTurn(before.directory, 'ZZZ1').sections).toHaveLength(2);
 	before.remove();
-	const after = workspace({ 'data/window.yaml': WINDOW, 'data/stage.yaml': 'current: s2\nroutes:\n  - {path: /docs/**, stages: [s2]}\n' });
+	const after = workspace({ 'data/window.yaml': WINDOW, 'data/stage.yaml': 'current: stage1\nroutes:\n  - {path: /docs/**, stages: [stage1]}\n' });
 	expect(() => findTurn(after.directory, 'ZZZ1')).toThrow('still marked source: brand-guide');
 	after.remove();
 });

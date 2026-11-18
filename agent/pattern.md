@@ -33,7 +33,7 @@ Product imagery is drawn from synthetic data in `data/` (`window.yaml`, `replay.
 ---
 import Window from '../components/Window.astro';
 import { released, staged } from '../stage.ts';
-const numbered = staged('/docs'); // byte ranges and timings are numbers: none at S1 outside the home hero
+const numbered = staged('/docs'); // byte ranges and timings are numbers: none at prelaunch outside the home hero
 ---
 <Window turn="0418" ranges={numbered} caption="Turn 0418's window, in render order. Heights are bytes. Synthetic persona." />
 {released('situation') && <p>…</p>}
@@ -72,7 +72,7 @@ const address = slot(slots, 'company.postal_address');
 ```
 A section whose slot is not filled yet is hidden by stage in `data/stage.yaml`, never given a default value.
 
-## Service route (Hono, from S3)
+## Service route (Hono, from stage2)
 Static SQL in module constants, input validated with zod, the clock and the merchant passed in, so a test can fix both.
 ```ts
 // service/cancel.ts

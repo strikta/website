@@ -3,14 +3,14 @@ import { workspace } from '../tool/fixture.ts';
 import { covers, happened, loadStage, priced, stageRoutes, withheld } from './stage.ts';
 
 const table = [
-	'current: s1',
+	'current: prelaunch',
 	'routes:',
-	'  - {path: /, stages: [s1]}',
-	'  - {path: /pro/checkout, stages: [s3]}',
-	'  - {path: /docs/**, stages: [s1]}',
+	'  - {path: /, stages: [prelaunch]}',
+	'  - {path: /pro/checkout, stages: [stage2]}',
+	'  - {path: /docs/**, stages: [prelaunch]}',
 	'withheld:',
-	'  - {route: /, stages: [s1], quotes: [synthetic-price]}',
-	'  - {route: /, stages: [s3], quotes: [synthetic-later]}',
+	'  - {route: /, stages: [prelaunch], quotes: [synthetic-price]}',
+	'  - {route: /, stages: [stage2], quotes: [synthetic-later]}',
 	''
 ].join('\n');
 

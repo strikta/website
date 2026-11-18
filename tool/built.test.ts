@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { builtFindings, visibleText } from './built.ts';
 import { syntheticExport, workspace } from './fixture.ts';
 
-const stage = 'current: S1\nroutes:\n  - {path: /, stages: [S1]}\n  - {path: /legal, stages: [S1]}\n  - {path: /pro/checkout, stages: [S3]}\n  - {path: /docs/**, stages: [S2]}\n  - {path: /.well-known/security.txt, stages: [S1]}\n';
+const stage = 'current: prelaunch\nroutes:\n  - {path: /, stages: [prelaunch]}\n  - {path: /legal, stages: [prelaunch]}\n  - {path: /pro/checkout, stages: [stage2]}\n  - {path: /docs/**, stages: [stage1]}\n  - {path: /.well-known/security.txt, stages: [prelaunch]}\n';
 const page = (body: string): string => `<!doctype html><html><head><title>Synthetic</title><link rel="stylesheet" href="/_astro/site.css"></head><body>${body}</body></html>`;
 const quotes = [{ id: 'synthetic-start', text: 'Starts on [start date].', pages: ['/legal'], fills: { '[start date]': 'launch.date' } }];
 
@@ -71,13 +71,13 @@ test.each([
 });
 
 test('flags a price figure on a stage that publishes none, but not one in a link target', () => {
-	expect(fixes({ 'dist/index.html': page('<p>From &euro;1,500 a year.</p>') })).toEqual(['price-figure: "€1,500": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
-	expect(fixes({ 'dist/index.html': page('<p>Revenue under 2 EUR.</p>') })).toEqual(['price-figure: "2 EUR": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(fixes({ 'dist/index.html': page('<p>From &euro;1,500 a year.</p>') })).toEqual(['price-figure: "€1,500": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(fixes({ 'dist/index.html': page('<p>Revenue under 2 EUR.</p>') })).toEqual(['price-figure: "2 EUR": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml']);
 	expect(fixes({ 'dist/index.html': page('<a href="mailto:licensing@strikta.dev?body=under%20%E2%82%AC1M">Email</a>') })).toEqual([]);
 });
 
 test('a stage that publishes prices may show a price figure', () => {
-	expect(fixes({ 'data/stage.yaml': `${stage}priced: [S1]\n`, 'dist/index.html': page('<p>€99 a year.</p><p>Save your work often.</p>') })).toEqual([]);
+	expect(fixes({ 'data/stage.yaml': `${stage}priced: [prelaunch]\n`, 'dist/index.html': page('<p>€99 a year.</p><p>Save your work often.</p>') })).toEqual([]);
 });
 
 test('flags a third-party import in a stylesheet', () => {
@@ -101,13 +101,13 @@ test('flags a quote that is not on its page', () => {
 });
 
 test('a quote the stage holds back on a page is not looked for there', () => {
-	const held = `${stage}withheld:\n  - {route: /legal, stages: [S1], quotes: [synthetic-start]}\n`;
+	const held = `${stage}withheld:\n  - {route: /legal, stages: [prelaunch], quotes: [synthetic-start]}\n`;
 	expect(fixes({ 'data/stage.yaml': held, 'dist/legal/index.html': page('<p>Starts soon.</p>') })).toEqual([]);
 });
 
 test('a quote held back on one page is still looked for on its other pages', () => {
 	const twice = syntheticExport({}, quotes.map((quote) => ({ ...quote, pages: ['/', '/legal'] })));
-	const held = `${stage}withheld:\n  - {route: /legal, stages: [S1], quotes: [synthetic-start]}\n`;
+	const held = `${stage}withheld:\n  - {route: /legal, stages: [prelaunch], quotes: [synthetic-start]}\n`;
 	expect(fixes({ ...twice, 'data/stage.yaml': held, 'dist/legal/index.html': page('<p>Starts soon.</p>') })).toEqual([
 		'quote-presence: quote "synthetic-start" is missing: render it with <Quote>; never retype it'
 	]);
@@ -126,8 +126,8 @@ test('flags a home page over its byte budget and scripts over theirs', () => {
 });
 
 test('flags a page outside the current stage and a missing page of it', () => {
-	expect(fixes({ 'dist/pro/checkout/index.html': page('<p>Synthetic.</p>'), 'dist/.well-known/security.txt': '' })).toEqual(['stage: page outside stage S1']);
-	expect(fixes({ 'dist/docs/start/index.html': page('<p>Synthetic.</p>') })).toEqual(['stage: page outside stage S1']);
+	expect(fixes({ 'dist/pro/checkout/index.html': page('<p>Synthetic.</p>'), 'dist/.well-known/security.txt': '' })).toEqual(['stage: page outside stage prelaunch']);
+	expect(fixes({ 'dist/docs/start/index.html': page('<p>Synthetic.</p>') })).toEqual(['stage: page outside stage prelaunch']);
 });
 
 test('without a stage table no page may be built', () => {
@@ -140,8 +140,8 @@ test('without a stage table no page may be built', () => {
 });
 
 test('flags a missing stage page and an emptied stage table', () => {
-	expect(fixes({ 'data/stage.yaml': `${stage}  - {path: /company, stages: [S1]}\n` })).toEqual(['stage: /company belongs to stage S1 but was not built']);
-	expect(fixes({ 'data/stage.yaml': 'current: S1\nroutes: []\n' }).every((fix) => fix === 'stage: page outside stage S1')).toBe(true);
+	expect(fixes({ 'data/stage.yaml': `${stage}  - {path: /company, stages: [prelaunch]}\n` })).toEqual(['stage: /company belongs to stage prelaunch but was not built']);
+	expect(fixes({ 'data/stage.yaml': 'current: prelaunch\nroutes: []\n' }).every((fix) => fix === 'stage: page outside stage prelaunch')).toBe(true);
 });
 
 test('flags a local host anywhere in the page', () => {
@@ -156,7 +156,7 @@ test('separates blocks the way a browser lays them out, and keeps inline runs to
 	expect(visibleText(page('<p>Write to <a href="mailto:support@strikta.dev">support@strikta.dev</a></p><p>Copyright</p><ul><li>One</li><li>T<strong>wo</strong></li></ul>'))).toBe('Write to support@strikta.dev Copyright One Two');
 });
 
-const legalStage = `${stage}  - {path: /legal/trademarks, stages: [S1]}\n`;
+const legalStage = `${stage}  - {path: /legal/trademarks, stages: [prelaunch]}\n`;
 const legalFile = '# Synthetic marks\n\nZZZ Mark is a **synthetic** mark.\n\n## 1. Use\n\n- Name `ZZZ` only\n- Never alter it\n\n| Mark | Owner |\n|---|---|\n| ZZZ | Synthetic AB |\n';
 const legalPage = (body: string, header?: string): string => page(`<header><p>${header ?? 'Synthetic header'}</p></header><main id="main">${body}</main>`);
 const fullLegal = '<h1>Synthetic marks</h1><nav aria-label="Contents"><ol><li><a href="#section-1">1. Use</a></li></ol></nav><p>ZZZ Mark is a <strong>synthetic</strong> mark.</p><section><h2 id="section-1">1. Use</h2><ul><li>Name <code>ZZZ</code> only</li><li>Never alter it</li></ul><table><thead><tr><th>Mark</th><th>Owner</th></tr></thead><tbody><tr><td>ZZZ</td><td>Synthetic AB</td></tr></tbody></table></section>';
@@ -197,7 +197,7 @@ test('flags a legal page whose text is not in the export', () => {
 	]);
 });
 
-const draftStage = `${stage}  - {path: /legal/licence-terms, stages: [S1]}\n`;
+const draftStage = `${stage}  - {path: /legal/licence-terms, stages: [prelaunch]}\n`;
 const draftLine = 'Until [end date] the price is €99 a year, then €99.';
 const draftQuotes = [...quotes, { id: 'synthetic-price', text: draftLine, pages: ['/legal/licence-terms'], fills: { '[end date]': 'founding.end_date' } }];
 const draftExport = syntheticExport({ 'legal/licence-terms.md': `# Synthetic terms\n\n${draftLine}\n` }, draftQuotes);
@@ -223,8 +223,8 @@ test('a draft legal page must say in its <main> that it is not in force', () => 
 
 test('a page in force may not show the price figures of its own exported text', () => {
 	const privacy = syntheticExport({ 'legal/privacy.md': '# Synthetic notice\n\nFee €99.\n' }, quotes);
-	const found = fixes({ ...privacy, 'data/stage.yaml': `${stage}  - {path: /legal/privacy, stages: [S1]}\n`, 'dist/legal/privacy/index.html': legalPage('<h1>Synthetic notice</h1><p>Fee €99.</p>') });
-	expect(found).toEqual(['price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	const found = fixes({ ...privacy, 'data/stage.yaml': `${stage}  - {path: /legal/privacy, stages: [prelaunch]}\n`, 'dist/legal/privacy/index.html': legalPage('<h1>Synthetic notice</h1><p>Fee €99.</p>') });
+	expect(found).toEqual(['price-figure: "€99.": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml']);
 });
 
 test('flags an exported placeholder of any length that no slot fills, except on its own draft page', () => {
@@ -243,21 +243,21 @@ test('flags an exported placeholder of any length that no slot fills, except on 
 test('a draft legal page may not show a placeholder or price figure its exported text does not hold as a whole match', () => {
 	expect(draftFixes(`${draftBody}<p>From [renewal day], €120 a year.</p>`)).toEqual([
 		'placeholder: unfilled slot or placeholder',
-		'price-figure: "€120": stage S1 publishes no price figure; hold the section back in data/stage.yaml'
+		'price-figure: "€120": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml'
 	]);
-	expect(draftFixes(`${draftBody}<p>Or €9 a month.</p>`)).toEqual(['price-figure: "€9": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(draftFixes(`${draftBody}<p>Or €9 a month.</p>`)).toEqual(['price-figure: "€9": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml']);
 });
 
 test('a draft legal page may not show its own placeholders and price figures outside <main>', () => {
 	expect(draftFixes(draftBody, 'Until [end date]: €99.')).toEqual([
 		'placeholder: unfilled slot or placeholder',
-		'price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml'
+		'price-figure: "€99.": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml'
 	]);
 });
 
 test('no other page may show the placeholders and price figures of a draft legal text', () => {
 	const found = fixes({ ...draftExport, 'data/stage.yaml': draftStage, 'dist/legal/licence-terms/index.html': legalPage(draftBody), 'dist/legal/index.html': page('<main><p>Starts on 2030-01-10.</p><p>Until [end date], €99.</p></main>') });
-	expect(found).toEqual(['placeholder: unfilled slot or placeholder', 'price-figure: "€99.": stage S1 publishes no price figure; hold the section back in data/stage.yaml']);
+	expect(found).toEqual(['placeholder: unfilled slot or placeholder', 'price-figure: "€99.": stage prelaunch publishes no price figure; hold the section back in data/stage.yaml']);
 });
 
 test('a quote that needs a note passes only with the note after it in the same section', () => {
